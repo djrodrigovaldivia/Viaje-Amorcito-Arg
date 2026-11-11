@@ -19,6 +19,8 @@ interface GoogleMapViewProps {
   onChangeMapType: (type: 'hybrid' | 'roadmap' | 'satellite' | 'terrain') => void;
   is3DTiltEnabled: boolean;
   onToggle3DTilt: () => void;
+  userLocation: { lat: number; lng: number; address?: string } | null;
+  onRequestLocation: () => void;
 }
 
 // Subcomponent to smoothly animate camera to selected landmark
@@ -135,6 +137,8 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
   onChangeMapType,
   is3DTiltEnabled,
   onToggle3DTilt,
+  userLocation,
+  onRequestLocation,
 }) => {
   const [hoveredLandmark, setHoveredLandmark] = useState<Landmark | null>(null);
   const [infoWindowLandmark, setInfoWindowLandmark] = useState<Landmark | null>(null);
@@ -277,11 +281,42 @@ export const GoogleMapView: React.FC<GoogleMapViewProps> = ({
               </div>
             </InfoWindow>
           )}
+          {/* Marker for María Ignacia's current GPS location */}
+          {userLocation && (
+            <AdvancedMarker
+              position={{ lat: userLocation.lat, lng: userLocation.lng }}
+              title="Estás acá, María Ignacia 💕"
+              zIndex={200}
+            >
+              <div className="relative flex flex-col items-center">
+                <div className="absolute -inset-4 rounded-full bg-pink-500/30 animate-ping pointer-events-none" />
+                <div className="relative flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gradient-to-r from-pink-500 to-rose-600 text-white font-bold text-xs shadow-2xl border-2 border-white ring-4 ring-pink-500/30">
+                  <span>📍</span>
+                  <span>María Ignacia 💕</span>
+                </div>
+                <div className="w-2.5 h-2.5 rotate-45 -mt-1 bg-rose-600 border-r-2 border-b-2 border-white" />
+              </div>
+            </AdvancedMarker>
+          )}
         </Map>
       </APIProvider>
 
       {/* Floating Map Controls HUD (Top Right) */}
       <div className="absolute top-4 right-4 flex flex-col gap-2 z-20 pointer-events-auto">
+        {/* GPS Location Button for María Ignacia */}
+        <button
+          onClick={onRequestLocation}
+          className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold backdrop-blur-md border shadow-xl transition-all ${
+            userLocation
+              ? 'bg-pink-500/25 border-pink-400 text-pink-200 ring-2 ring-pink-400/30'
+              : 'bg-slate-900/85 border-slate-700 text-slate-300 hover:text-white hover:bg-slate-800'
+          }`}
+          title="Detectar y centrar mi ubicación GPS en Argentina"
+        >
+          <Navigation className={`w-4 h-4 ${userLocation ? 'text-pink-400 fill-current' : 'text-slate-400'}`} />
+          <span>{userLocation ? '📍 Mi Ubicación Activa' : '📍 ¿Dónde estoy? (GPS)'}</span>
+        </button>
+
         {/* 3D Perspective Toggle Button */}
         <button
           onClick={onToggle3DTilt}

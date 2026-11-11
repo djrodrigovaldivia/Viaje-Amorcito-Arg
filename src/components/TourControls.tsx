@@ -12,6 +12,11 @@ import {
   Route,
   Sparkles,
   Info,
+  Calendar,
+  Heart,
+  BookOpen,
+  CloudSun,
+  Camera,
 } from 'lucide-react';
 
 interface TourControlsProps {
@@ -22,6 +27,11 @@ interface TourControlsProps {
   onOpenTrivia: () => void;
   onOpenDistance: () => void;
   onOpen3DModel: (landmark: Landmark) => void;
+  onOpenSchedule: () => void;
+  onOpenDiary: () => void;
+  onOpenWeather: () => void;
+  onOpenAI: () => void;
+  onOpenHelp: () => void;
 }
 
 export const TourControls: React.FC<TourControlsProps> = ({
@@ -32,6 +42,11 @@ export const TourControls: React.FC<TourControlsProps> = ({
   onOpenTrivia,
   onOpenDistance,
   onOpen3DModel,
+  onOpenSchedule,
+  onOpenDiary,
+  onOpenWeather,
+  onOpenAI,
+  onOpenHelp,
 }) => {
   const [isPlayingAutoTour, setIsPlayingAutoTour] = useState(false);
   const [isSpeakingAudio, setIsSpeakingAudio] = useState(false);
@@ -326,33 +341,64 @@ export const TourControls: React.FC<TourControlsProps> = ({
         </div>
 
         {/* Right: Quick Action Buttons */}
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2">
+          {/* Maria's Travel Diary */}
+          <button
+            onClick={onOpenDiary}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-pink-600/20 hover:bg-pink-600/30 border border-pink-400/40 text-pink-300 text-xs font-semibold transition-all shadow-sm"
+            title="Diario de Viaje: Fotos y notas guardadas en tu teléfono"
+          >
+            <Camera className="w-3.5 h-3.5 text-pink-400" />
+            <span className="hidden sm:inline">Diario</span>
+          </button>
+
+          {/* Weather & Packing */}
+          <button
+            onClick={onOpenWeather}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/40 text-sky-300 text-xs font-semibold transition-all shadow-sm"
+            title="Clima actual y qué empacar"
+          >
+            <CloudSun className="w-3.5 h-3.5 text-sky-400" />
+            <span className="hidden sm:inline">Clima</span>
+          </button>
+
+          {/* Maria's Itinerary */}
+          <button
+            onClick={onOpenSchedule}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 text-xs font-semibold transition-all shadow-sm"
+            title="Ver y editar tu itinerario en Argentina"
+          >
+            <Calendar className="w-3.5 h-3.5 text-slate-300" />
+            <span className="hidden md:inline">Itinerario</span>
+          </button>
+
+          {/* AI Guide for Maria Ignacia */}
+          <button
+            onClick={onOpenAI}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white text-xs font-bold transition-all shadow-md shadow-sky-500/20"
+            title="Consultar a la IA sobre horarios, consejos y lugares"
+          >
+            <Sparkles className="w-3.5 h-3.5 text-white" />
+            <span>Guía IA</span>
+          </button>
+
           {/* 3D Model Modal Trigger */}
           <button
             onClick={() => onOpen3DModel(selectedLandmark)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/40 text-sky-300 text-xs font-semibold transition-all shadow-sm"
+            className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/40 text-sky-300 text-xs font-semibold transition-all shadow-sm"
           >
             <Sparkles className="w-3.5 h-3.5 text-sky-400" />
             <span>Gemelo 3D</span>
           </button>
 
-          {/* Distance Calculator Trigger */}
+          {/* Help walkthrough modal */}
           <button
-            onClick={onOpenDistance}
-            className="p-2 rounded-xl bg-slate-800/80 hover:bg-slate-700 border border-slate-700 text-slate-300 hover:text-white transition-colors"
-            title="Calcular distancias y rutas de viaje"
+            onClick={onOpenHelp}
+            className="flex items-center gap-1 px-2.5 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-300 text-xs font-semibold transition-all"
+            title="Ayuda: cómo usar la app"
           >
-            <Route className="w-4 h-4" />
-          </button>
-
-          {/* Trivia Trigger */}
-          <button
-            onClick={onOpenTrivia}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/40 text-amber-300 text-xs font-semibold transition-all"
-            title="Desafío de trivia sobre Argentina"
-          >
-            <HelpCircle className="w-3.5 h-3.5 text-amber-400" />
-            <span className="hidden sm:inline">Desafío Criollo</span>
+            <HelpCircle className="w-4 h-4 text-amber-400" />
+            <span className="hidden md:inline">Ayuda</span>
           </button>
         </div>
       </div>
