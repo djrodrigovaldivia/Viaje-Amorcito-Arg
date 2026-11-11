@@ -1,0 +1,6 @@
+{
+  "name": "Argentina 3D: Tour Interactivo de Monumentos y Maravillas",
+  "description": "Explora los monumentos y maravillas naturales más icónicos de Argentina en 3D con Google Maps, vistas aéreas orbitales, modelos 3D y audioguía en español.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
