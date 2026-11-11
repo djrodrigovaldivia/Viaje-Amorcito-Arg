@@ -35,6 +35,7 @@ import {
   Mic,
   ShoppingBag,
   ShieldAlert,
+  HelpCircle,
 } from 'lucide-react';
 
 // Lazy-load Three.js 3D Engine so it consumes 0% RAM & battery until a 3D model is opened
@@ -51,6 +52,7 @@ export default function App() {
 
   // ALWAYS open the Cat Welcome Modal every time the app is opened ("Hola mamiii que tengas un hermoso dia  -_- , miaauu")
   const [isCatModalOpen, setIsCatModalOpen] = useState<boolean>(true);
+  const [catModalTab, setCatModalTab] = useState<'cat' | 'guide'>('cat');
 
   // Essential / Ultra-Low Battery Mode for iPhone (persisted in localStorage)
   const [isEssentialMode, setIsEssentialMode] = useState<boolean>(() => {
@@ -217,12 +219,28 @@ export default function App() {
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
           {/* 🐱 Cat Greeting Trigger Button */}
           <button
-            onClick={() => setIsCatModalOpen(true)}
+            onClick={() => {
+              setCatModalTab('cat');
+              setIsCatModalOpen(true);
+            }}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-pink-500/15 hover:bg-pink-500/25 border border-pink-400/40 text-pink-200 font-extrabold text-xs transition-all shrink-0"
             title="Saludo de tu gatito"
           >
             <span>🐱</span>
-            <span className="hidden xs:inline">Miau</span>
+            <span>Miau</span>
+          </button>
+
+          {/* 📖 ¿Cómo usar tu app? */}
+          <button
+            onClick={() => {
+              setCatModalTab('guide');
+              setIsCatModalOpen(true);
+            }}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-pink-500/40 text-pink-200 font-extrabold text-xs transition-all shrink-0"
+            title="¿Cómo usar tu app?"
+          >
+            <HelpCircle className="w-3.5 h-3.5 text-pink-400" />
+            <span className="hidden xs:inline">Cómo usar</span>
           </button>
 
           {/* 1-TAP ESSENTIAL / BATTERY SAVER MODE TOGGLE */}
@@ -400,11 +418,12 @@ export default function App() {
         </>
       )}
 
-      {/* ALWAYS-ON-OPEN CAT WELCOME MODAL ("Hola mamiii que tengas un hermoso dia  -_- , miaauu") */}
+      {/* ALWAYS-ON-OPEN CAT WELCOME MODAL ("Hola mamiii que tengas un hermoso dia  -_- , miaauu") + GUIA PASO A PASO */}
       <CatWelcomeModal
         isOpen={isCatModalOpen}
         onClose={() => setIsCatModalOpen(false)}
         onOpenDailyLetter={() => openQuickHub('letters')}
+        initialTab={catModalTab}
       />
 
       {/* FAST SOS POLICE 911 & EMERGENCY MODAL */}
