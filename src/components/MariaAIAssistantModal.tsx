@@ -65,7 +65,7 @@ export const MariaAIAssistantModal: React.FC<MariaAIAssistantModalProps> = ({
     {
       id: 'welcome-1',
       sender: 'ai',
-      text: `¡Hola mi amorcito lindo! 💕🇨🇱\n\nSoy tu guía personal en Argentina, hecho con todo el amor del mundo por Rodrigo para cuidarte y acompañarte a cada paso.\n\nToca el **botón del micrófono 🎙️** para hablarme con tu voz sin tener que tipear en tu iPhone (esperaré 1.4 segunditos cuando termines de hablar para que jamás nos pisemos al conversar), o toca cualquier botón rápido de abajo. ¡Funciono con Wi-Fi y también 100% sin internet en la calle po, mi amorcito!`,
+      text: `¡Hola mi amorcito lindo! 💕🇨🇱\n\nSoy tu guía personal en Buenos Aires, hecho con todo el amor del mundo por Rodrigo para acompañarte.\n\n✨ **Aquí no hay horarios ni itinerarios fijos: tú mandas 100%.**\nToca el **micrófono 🎙️** y dime qué tienes ganas de hacer ahora (*"Quiero ir a ver ropa usada"*, *"Llévame a una tienda tipo Zara barata"*, *"Quiero ir al Barrio Chino"*, *"¿Qué hay cerca de donde estoy?"*) y yo te guío paso a paso po, mi amorcito.`,
       time: 'Ahora',
     },
   ]);
@@ -368,11 +368,30 @@ export const MariaAIAssistantModal: React.FC<MariaAIAssistantModalProps> = ({
   const hasRodrigoGreeting = !!getRodrigoRecording('ai-greeting');
 
   const quickChips = [
-    { label: '⛅ ¿Qué abrigo me pongo hoy?', query: '¿Qué clima hace y qué abrigo me pongo hoy?' },
-    { label: '📍 ¿Dónde estoy parada?', query: '¿Dónde estoy ahora y qué tengo cerca?' },
-    { label: '🗓️ ¿Qué me toca hoy?', query: '¿Cuál es mi itinerario y horarios de hoy?' },
-    { label: '🍦 ¿Dónde tomo once o helado?', query: '¿Dónde puedo tomar once o comer helados ricos?' },
-    { label: '🚇 ¿Cómo uso el Subte y la micro?', query: '¿Cómo funciona el Subte, los colectivos y el cambio de pesos?' },
+    {
+      label: '👗 Tengo ganas de ver Ropa Usada',
+      query: 'Tengo ganas de ir a ver ropa usada estilo @maria_la_vintage ahora, ¿a cuál me recomiendas ir y cómo llego?',
+    },
+    {
+      label: '🖤 Quiero ir a tiendas tipo Zara / Outlets',
+      query: 'Quiero ir a mirar tiendas de tendencia tipo Zara baratas o a los Outlets de Calle Aguirre, ¿cómo voy?',
+    },
+    {
+      label: '🏮 Quiero ir al Barrio Chino / Mall Chinos',
+      query: 'Tengo ganas de ir al Barrio Chino o a los Mall Chinos, ¿dónde quedan y cómo llego?',
+    },
+    {
+      label: '📍 ¿Dónde estoy y qué hay cerca mío?',
+      query: '¿Dónde estoy ahora y qué cosas lindas tengo cerca para hacer?',
+    },
+    {
+      label: '🥐 Quiero tomar un café o comer Franuí',
+      query: 'Tengo ganas de tomar un cafecito con medialunas o comer chocolates Rapanui, ¿dónde voy?',
+    },
+    {
+      label: '⛅ ¿Qué abrigo me pongo hoy?',
+      query: '¿Qué clima hace en Buenos Aires y qué abrigo me pongo hoy?',
+    },
     { label: '💌 Extraño a Rodrigo', query: 'Extraño a Rodrigo' },
   ];
 

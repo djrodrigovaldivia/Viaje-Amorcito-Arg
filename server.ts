@@ -36,8 +36,14 @@ REGLAS ESTRICTAS DE IDENTIDAD, IDIOMA Y TRATO:
 5. Recuerda que ella usa un iPhone y en la calle en Argentina puede estar sin datos móviles (solo Wi-Fi en el hotel). Dales consejos claros, directos, con horarios, qué ropa/abrigo ponerse, cómo moverse en Subte/Colectivo con la tarjeta SUBE o Cabify/Uber, dónde comer rico y cuánto dejar de propina (10%).
 6. Si te comparte su ubicación GPS (latitud y longitud), dile al tiro en qué barrio o lugar está, qué tiene cerca y cómo cuidarse.
 7. ELLA AMA LA MODA, LA ROPA USADA / AMERICANA ("Ferias Americanas" / "Moda Circular"), LAS TENDENCIAS TIPO ZARA ACCESIBLES (nada caro) Y LOS MALL CHINOS. Además ella tiene su propia tienda de ropa en Instagram llamada @maria_la_vintage (estética europea/Zara: blazers sastreros oversize, chaquetas de gamuza y cuero, faldas midi satinadas/ecocuero/lentejuelas, tops de encaje, corsets, chalecos tejidos, pantalones wide-leg). Recomiéndale siempre con direcciones exactas: Juan Perez Vintage (Marcelo T. de Alvear 1355), Galpón de Ropa (Cabrera 4667), Cocoliche (Av. Santa Fe 2450), Outlets de Calle Aguirre 600-900 en Villa Crespo (Complot, Las Pepas), Zara Special Prices + tiendas Ver y Yagmour en Av. Santa Fe, el "Zara Mayorista" en calles Argerich y Helguera (Av. Avellaneda, Flores), Urban Luxury (Av. Cabildo 2040) combinado con los bazares del Barrio Chino de Belgrano (calle Arribeños: Casa China, Asia Oriental) y los Mall Chinos de Once (Av. Pueyrredón y Pasteur).
-8. Respuestas cálidas, concisas y fáciles de escuchar por voz o leer rápido en la pantalla de su iPhone.
+8. NO EXISTE ITINERARIO FIJO NI HORARIOS IMPUESTOS: Nunca le digas qué tiene que hacer por horario. Ella es libre de decidir qué tiene ganas de hacer en el momento, ella te dice qué quiere hacer o a dónde quiere ir en Buenos Aires, y tú la guías con mucho amor paso a paso (calles exactas, cómo llegar, precios en CLP y ARS, y consejos de seguridad).
+9. Si necesita ayuda o policía, recuérdale que tiene el botón rojo "🆘 SOS" abajo en la pantalla para llamar con 1 toque al 911 (Policía de Buenos Aires), 107 (Ambulancia SAME) o Comisaría del Turista (0800-999-5000).
+10. Respuestas cálidas, concisas y fáciles de escuchar por voz o leer rápido en la pantalla de su iPhone.
 `;
+
+// Simple in-memory cache for audio synthesis to prevent re-requesting identical phrases & hitting 429 quota
+const ttsServerCache = new Map<string, string>();
+let ttsQuotaExceededUntil = 0;
 
 // API Endpoint: Text-to-Speech in Male Chilean Voice (Gemini 3.8 Flash Lite TTS)
 app.post('/api/ai/tts', async (req, res) => {
@@ -52,11 +58,29 @@ app.post('/api/ai/tts', async (req, res) => {
     }
 
     const cleanText = text
-      .replace(/[*_#`~>]/g, '')
+      .replace(/[*_#`~>•]/g, '')
       .replace(/\[(.*?)\]\(.*?\)/g, '$1')
-      .slice(0, 900);
+      .slice(0, 400)
+      .trim();
 
     const selectedVoice = ['Puck', 'Charon', 'Fenrir'].includes(voiceName) ? voiceName : 'Puck';
+    const cacheKey = `${selectedVoice}:${cleanText}`;
+
+    if (ttsServerCache.has(cacheKey)) {
+      return res.json({
+        audioBase64: ttsServerCache.get(cacheKey),
+        mimeType: 'audio/wav',
+        fromCache: true,
+      });
+    }
+
+    // If quota was exceeded recently on free tier (RPM limit = 3 requests/min), fallback gracefully to local voice
+    if (Date.now() < ttsQuotaExceededUntil) {
+      return res.status(429).json({
+        error: 'TTS quota temporaria alcanzada, usando voz masculina local del dispositivo',
+        offlineFallback: true,
+      });
+    }
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.8-flash-lite-tts',
@@ -89,11 +113,23 @@ app.post('/api/ai/tts', async (req, res) => {
       return res.status(500).json({ error: 'No se recibió audio del modelo', offlineFallback: true });
     }
 
+    ttsServerCache.set(cacheKey, base64Audio);
+
     return res.json({
       audioBase64: base64Audio,
       mimeType: 'audio/wav',
     });
-  } catch (error: unknown) {
+  } catch (error: any) {
+    const errorStr = String(error?.message || error || '');
+    if (errorStr.includes('429') || errorStr.includes('RESOURCE_EXHAUSTED')) {
+      // Cooldown for 55 seconds when free tier 3 RPM limit is reached
+      ttsQuotaExceededUntil = Date.now() + 55000;
+      console.warn('TTS rate limit (3 RPM free tier) reached. Gracefully falling back to local male Chilean voice.');
+      return res.status(429).json({
+        error: 'Límite de peticiones por minuto alcanzado. Usando voz masculina local.',
+        offlineFallback: true,
+      });
+    }
     console.error('Error in /api/ai/tts:', error);
     return res.status(500).json({ error: 'Fallback a voz masculina local del iPhone', offlineFallback: true });
   }
@@ -102,7 +138,7 @@ app.post('/api/ai/tts', async (req, res) => {
 // API Endpoint: Chat with AI Guide
 app.post('/api/ai/chat', async (req, res) => {
   try {
-    const { message, itinerary, userLocation } = req.body;
+    const { message, userLocation } = req.body;
 
     if (!process.env.GEMINI_API_KEY) {
       return res.status(503).json({
@@ -111,21 +147,13 @@ app.post('/api/ai/chat', async (req, res) => {
       });
     }
 
-    // Compose rich contextual prompt
-    let contextPrompt = '';
-    if (itinerary && Array.isArray(itinerary) && itinerary.length > 0) {
-      contextPrompt += `\n[Itinerario actual de Amorcito]:\n` +
-        itinerary.map((day: { dayNumber: number; title: string; activities: { time: string; text: string; done?: boolean }[] }) => {
-          const actList = (day.activities || []).map(a => `  - ${a.time || 'Horario flexible'}: ${a.text} ${a.done ? '(Completado)' : ''}`).join('\n');
-          return `Día ${day.dayNumber}: ${day.title}\n${actList}`;
-        }).join('\n\n');
-    }
+    let contextPrompt = '[Modo Libre en Buenos Aires]: Ella no tiene itinerario fijo; ella decide qué tiene ganas de hacer ahora y tú la ayudas paso a paso.';
 
     if (userLocation && typeof userLocation.lat === 'number') {
-      contextPrompt += `\n\n[Ubicación GPS actual de Amorcito]: Lat: ${userLocation.lat.toFixed(4)}, Lng: ${userLocation.lng.toFixed(4)}${userLocation.address ? ` (${userLocation.address})` : ''}`;
+      contextPrompt += `\n[Ubicación GPS actual de Amorcito]: Lat: ${userLocation.lat.toFixed(4)}, Lng: ${userLocation.lng.toFixed(4)}${userLocation.address ? ` (${userLocation.address})` : ''}`;
     }
 
-    const contents = `${contextPrompt}\n\nMensaje de Amorcito: "${message || 'Hola, ¿qué me recomiendas para mi itinerario hoy?'}"`;
+    const contents = `${contextPrompt}\n\nMensaje de Amorcito: "${message || 'Hola, dime qué cosas entretenidas puedo hacer ahora en Buenos Aires'}"`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.8-flash',

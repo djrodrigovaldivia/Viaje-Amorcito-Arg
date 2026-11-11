@@ -545,33 +545,36 @@ export const MariaQuickHubModal: React.FC<MariaQuickHubModalProps> = ({
                 </div>
               </div>
 
-              {/* Next Upcoming Activity Banner */}
-              {nextActivityInfo && (
-                <div className="p-4 rounded-3xl bg-slate-900 border border-sky-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-                  <div className="space-y-1">
-                    <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-sky-400">
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      <span>Próxima parada en tu Itinerario (Día {nextActivityInfo.day.dayNumber})</span>
-                    </span>
-                    <h4 className="text-base font-extrabold text-white">
-                      {nextActivityInfo.activity.time ? `${nextActivityInfo.activity.time} hrs — ` : ''}
-                      {nextActivityInfo.activity.title}
-                    </h4>
-                    <p className="text-xs text-slate-300">
-                      📍 {nextActivityInfo.day.city} • {nextActivityInfo.activity.notes || '¡Pásalo increíble mi amorcito!'}
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => {
-                      onClose();
-                      onOpenSchedule();
-                    }}
-                    className="px-4 py-2.5 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-extrabold shrink-0"
+              {/* Fast SOS Emergency Banner */}
+              <div className="p-4 rounded-3xl bg-gradient-to-r from-red-950/80 via-rose-950/60 to-slate-900 border-2 border-red-500/50 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+                <div className="space-y-1">
+                  <span className="inline-flex items-center gap-1.5 text-[11px] font-extrabold uppercase tracking-wider text-red-300">
+                    <ShieldAlert className="w-3.5 h-3.5" />
+                    <span>🆘 Emergencia Rápida en Buenos Aires (24 Horas)</span>
+                  </span>
+                  <h4 className="text-base font-extrabold text-white">
+                    Policía 911 • Comisaría del Turista • Ambulancia 107
+                  </h4>
+                  <p className="text-xs text-red-100">
+                    Llamada directa de 1 toque desde tu iPhone en cualquier barrio de Buenos Aires.
+                  </p>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  <a
+                    href="tel:911"
+                    className="px-4 py-2.5 rounded-2xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold flex items-center gap-1.5 shadow-lg"
                   >
-                    Ver Mi Día Completo →
+                    <Phone className="w-3.5 h-3.5 fill-current" />
+                    <span>Llamar 911</span>
+                  </a>
+                  <button
+                    onClick={() => setActiveTab('sos')}
+                    className="px-3.5 py-2.5 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-red-400/40 text-red-200 text-xs font-extrabold"
+                  >
+                    Ver todos los números →
                   </button>
                 </div>
-              )}
+              </div>
 
               {/* 6 Giant Touch Cards */}
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">

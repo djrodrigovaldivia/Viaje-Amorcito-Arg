@@ -2,169 +2,146 @@ import { DaySchedule } from '../types/schedule';
 
 export const DEFAULT_MARIA_SCHEDULE: DaySchedule[] = [
   {
-    id: 'dia-1',
+    id: 'ba-dia-1',
     dayNumber: 1,
-    title: 'Buenos Aires Histórico y Bohemio',
-    city: 'Buenos Aires (CABA)',
-    tipsForMaria: 'Tip de Rodrigo: Comprate una tarjeta SUBE en un kiosco o estación para moverte en subte. Probá un café con medialunas de manteca en una cafetería notable.',
+    title: 'Día 1: Obelisco, Recoleta & Juan Perez Vintage',
+    city: 'Buenos Aires (Centro, Recoleta & Av. Santa Fe)',
+    tipsForMaria:
+      'Tip de Rodrigo para tu Día 1, mi Amorcito: Hoy todo queda cerquita caminando o en Subte Línea D. En Juan Perez Vintage (Marcelo T. de Alvear 1355) vas a alucinar con los blazers sastreros y carteras de cuero real para inspirar a @maria_la_vintage.',
     activities: [
       {
-        id: 'act-1-1',
+        id: 'ba-1-1',
         time: '10:00',
-        title: 'Visita y fotos en el Obelisco & Av. 9 de Julio',
+        title: 'Fotos en el Obelisco & Desayuno con Medialunas',
         landmarkId: 'obelisco',
-        notes: 'Ideal para sacar fotos con el jardín vertical en forma de BA en la Plaza de la República.',
+        notes:
+          'Av. 9 de Julio y Av. Corrientes. Sacate fotos en las letras blancas de BA y probá un café con medialunas de manteca calentitas.',
         done: false,
       },
       {
-        id: 'act-1-2',
-        time: '12:30',
-        title: 'Visita guiada al Teatro Colón',
+        id: 'ba-1-2',
+        time: '11:30',
+        title: 'Visita por fuera y hall del Teatro Colón',
         landmarkId: 'teatro-colon',
-        notes: 'Comprar entrada con antelación o consultar turnos en la boletería sobre calle Libertad.',
+        notes:
+          'Cerrito 628 (a 2 cuadras del Obelisco). Uno de los teatros de ópera más lindos del mundo.',
         done: false,
       },
       {
-        id: 'act-1-3',
-        time: '15:30',
-        title: 'Paseo por Caminito y conventillos de La Boca',
-        landmarkId: 'la-boca-caminito',
-        notes: 'Ver las parejas bailando tango en la calle y comer unas ricas empanadas al paso.',
+        id: 'ba-1-3',
+        time: '13:30',
+        title: '👗 Joya Vintage #1: Juan Perez Vintage (Recoleta)',
+        vintageSpotId: 'juan-perez-vintage',
+        notes:
+          'Marcelo T. de Alvear 1355. La tienda de ropa usada y vintage más famosa de Buenos Aires: blazers, gabardinas, cuero y denim con precios súper accesibles.',
         done: false,
       },
       {
-        id: 'act-1-4',
-        time: '19:30',
-        title: 'Cena romántica en Puerto Madero o San Telmo',
-        notes: 'Caminar junto al Puente de la Mujer con las luces del canal.',
-        done: false,
-      },
-    ],
-  },
-  {
-    id: 'dia-2',
-    dayNumber: 2,
-    title: 'Naturaleza Subtropical: Cataratas del Iguazú',
-    city: 'Puerto Iguazú, Misiones',
-    tipsForMaria: 'Tip de Rodrigo: Llevá impermeable ligero o muda de ropa porque en la Garganta del Diablo la bruma empapa rico. Calzado cómodo con buen agarre.',
-    activities: [
-      {
-        id: 'act-2-1',
-        time: '09:00',
-        title: 'Ingreso al Parque Nacional Iguazú & Tren Ecológico de la Selva',
-        landmarkId: 'iguazu',
-        notes: 'El parque abre de 08:00 a 18:00 hs. Tomar el tren a la estación Garganta.',
-        done: false,
-      },
-      {
-        id: 'act-2-2',
-        time: '11:00',
-        title: 'Pasarela a la Garganta del Diablo',
-        landmarkId: 'iguazu',
-        notes: 'Sentir la fuerza de los 80 metros de caída libre. Sacar fotos del arcoíris.',
-        done: false,
-      },
-      {
-        id: 'act-2-3',
-        time: '14:30',
-        title: 'Circuito Superior e Inferior entre la selva',
-        landmarkId: 'iguazu',
-        notes: 'Avistamiento de coatíes, tucanes y mariposas de colores.',
-        done: false,
-      },
-    ],
-  },
-  {
-    id: 'dia-3',
-    dayNumber: 3,
-    title: 'Montañas y Viñedos de Cuyo',
-    city: 'Mendoza / Andes',
-    tipsForMaria: 'Tip de Rodrigo: Tomá mucha agua para aclimatarte a la altura andina. Protector solar y anteojos de sol son indispensables.',
-    activities: [
-      {
-        id: 'act-3-1',
-        time: '09:30',
-        title: 'Excursión de Alta Montaña con vista al Cerro Aconcagua',
-        landmarkId: 'aconcagua',
-        notes: 'Mirador de la Laguna de Horcones en el Parque Provincial Aconcagua.',
-        done: false,
-      },
-      {
-        id: 'act-3-2',
-        time: '14:00',
-        title: 'Almuerzo y degustación en bodega del Valle de Uco',
-        notes: 'Vino Malbec con vistas panorámicas a la cordillera nevada.',
-        done: false,
-      },
-      {
-        id: 'act-3-3',
-        time: '18:00',
-        title: 'Regreso y paseo por la arboleda de la Plaza Independencia',
-        notes: 'Pasear por el centro mendocino y probar helado de dulce de leche.',
-        done: false,
-      },
-    ],
-  },
-  {
-    id: 'dia-4',
-    dayNumber: 4,
-    title: 'Hielo Milenario: Glaciar Perito Moreno',
-    city: 'El Calafate, Santa Cruz',
-    tipsForMaria: 'Tip de Rodrigo: Abrigate por capas (campera cortavientos y polar). La tarde es el mejor momento para escuchar los desprendimientos de hielo.',
-    activities: [
-      {
-        id: 'act-4-1',
-        time: '10:00',
-        title: 'Paseo por las pasarelas del Glaciar Perito Moreno',
-        landmarkId: 'perito-moreno',
-        notes: 'Diferentes niveles de pasarelas frente a la pared de hielo de 70 metros.',
-        done: false,
-      },
-      {
-        id: 'act-4-2',
-        time: '13:00',
-        title: 'Navegación Safari Náutico por el Lago Argentino',
-        landmarkId: 'perito-moreno',
-        notes: 'Ver los témpanos azules flotando a corta distancia de la embarcación.',
-        done: false,
-      },
-      {
-        id: 'act-4-3',
-        time: '19:00',
-        title: 'Cena con cordero patagónico en El Calafate',
-        notes: 'Probar mermelada y licor de calafate ("el que come calafate, siempre vuelve").',
-        done: false,
-      },
-    ],
-  },
-  {
-    id: 'dia-5',
-    dayNumber: 5,
-    title: 'Lagos y Bosques de Bariloche',
-    city: 'San Carlos de Bariloche, Río Negro',
-    tipsForMaria: 'Tip de Rodrigo: Pasá por la calle Mitre a probar chocolates en Rapanui (¡pedí los Frambui bañados en chocolate!).',
-    activities: [
-      {
-        id: 'act-5-1',
-        time: '10:00',
-        title: 'Subida al Cerro Campanario en aerosilla',
-        landmarkId: 'bariloche-llao-llao',
-        notes: 'Una de las 10 mejores vistas panorámicas del planeta según National Geographic.',
-        done: false,
-      },
-      {
-        id: 'act-5-2',
-        time: '12:30',
-        title: 'Circuito Chico y fotos frente al Hotel Llao Llao',
-        landmarkId: 'bariloche-llao-llao',
-        notes: 'Bosque de arrayanes y capilla San Eduardo con vista al lago Nahuel Huapi.',
-        done: false,
-      },
-      {
-        id: 'act-5-3',
+        id: 'ba-1-4',
         time: '16:00',
-        title: 'Tarde de té y chocolates en el Centro Cívico',
-        notes: 'Comprar recuerdos y alfajores para llevar a casa.',
+        title: '🖤 Ruta Tipo Zara & Tendencia en Av. Santa Fe / Alto Palermo',
+        vintageSpotId: 'ruta-zara-santa-fe',
+        notes:
+          'Av. Santa Fe 3253. Mirar tendencias de temporada en Zara, Ver y Complot (sastrería, faldas midi y básicos lindos sin gastar de más).',
+        done: false,
+      },
+      {
+        id: 'ba-1-5',
+        time: '19:00',
+        title: 'Paseo por Recoleta & Chocolates Rapanui (Franuí)',
+        notes:
+          'Caminar por Plaza Francia y probar los famosos Franuí (frambuesas bañadas en chocolate blanco y negro) en Rapanui.',
+        done: false,
+      },
+    ],
+  },
+  {
+    id: 'ba-dia-2',
+    dayNumber: 2,
+    title: 'Día 2: Palermo Soho, Outlets Aguirre & Barrio Chino',
+    city: 'Buenos Aires (Palermo, Villa Crespo & Belgrano)',
+    tipsForMaria:
+      'Tip de Rodrigo para tu Día 2, mi Amorcito: Empezá en Galpón de Ropa (Palermo Soho) y después bajá caminando 10 minutos hasta los Outlets de Calle Aguirre. ¡Vas a encontrar prendas increíbles a mitad de precio!',
+    activities: [
+      {
+        id: 'ba-2-1',
+        time: '10:30',
+        title: '♻️ Galpón de Ropa (Palermo Soho) + Cafecito aesthetic',
+        vintageSpotId: 'galpon-de-ropa-palermo',
+        notes:
+          'Cabrera 4667, Palermo Soho. Ropa usada seleccionada por color y talle: Zara, Mango, Levi’s y marcas argentinas impecables.',
+        done: false,
+      },
+      {
+        id: 'ba-2-2',
+        time: '13:00',
+        title: '🛍️ Outlets de Calle Aguirre (Tendencia a -50%)',
+        vintageSpotId: 'outlets-aguirre-villa-crespo',
+        notes:
+          'Aguirre 600 al 900 (Villa Crespo, pegado a Palermo). 6 cuadras llenas de outlets oficiales de marcas de moda argentina a precio rebajado.',
+        done: false,
+      },
+      {
+        id: 'ba-2-3',
+        time: '15:30',
+        title: '✨ Urban Luxury (Av. Cabildo) rumbo a Belgrano',
+        vintageSpotId: 'urban-luxury-belgrano',
+        notes:
+          'Av. Cabildo 2040. Mega tienda de ropa usada seleccionada donde entran más de 500 prendas nuevas por día.',
+        done: false,
+      },
+      {
+        id: 'ba-2-4',
+        time: '17:30',
+        title: '🏮 Paseo y Compras en el Barrio Chino de Belgrano',
+        vintageSpotId: 'barrio-chino-bazar',
+        notes:
+          'Arribeños 2100 y Pasaje Echeverría. Entrá por el arco gigante a los bazares chinos de 2 pisos (maquillaje, carteras, accesorios kawaii y snacks asiáticos).',
+        done: false,
+      },
+    ],
+  },
+  {
+    id: 'ba-dia-3',
+    dayNumber: 3,
+    title: 'Día 3: Feria San Telmo, Caminito, Mayoristas & Puerto Madero',
+    city: 'Buenos Aires (San Telmo, La Boca & Puerto Madero)',
+    tipsForMaria:
+      'Tip de Rodrigo para tu último día, mi Amorcito: Si querés comprar lotes nuevos en tendencia para vender en @maria_la_vintage, pasá temprano por Calle Argerich (Avellaneda) o los Mall Chinos de Once con efectivo. Y en la tarde disfrutá San Telmo y Puerto Madero.',
+    activities: [
+      {
+        id: 'ba-3-1',
+        time: '09:30',
+        title: '👠 Opcional Mayorista: Calle Argerich (Avellaneda) o Mall Chinos Once',
+        vintageSpotId: 'av-avellaneda-flores',
+        notes:
+          'Av. Avellaneda y Argerich (Flores) para comprar ropa de tendencia por mayor a $4.000-$10.000 CLP, o Bazares Chinos de Sarmiento y Pueyrredón (Once).',
+        done: false,
+      },
+      {
+        id: 'ba-3-2',
+        time: '12:30',
+        title: '👜 Mercado de San Telmo & Galerías Vintage (Calle Defensa)',
+        vintageSpotId: 'feria-san-telmo-vintage',
+        notes:
+          'Defensa 963. Recorré el mercado histórico con techo de hierro, las tiendas de ropa americana, cuero argentino y antigüedades.',
+        done: false,
+      },
+      {
+        id: 'ba-3-3',
+        time: '15:30',
+        title: '🎨 Paseo y Fotos en Caminito (La Boca)',
+        landmarkId: 'la-boca-caminito',
+        notes:
+          'Conventillos de todos los colores, tango en vivo y feria de artistas plásticos al aire libre (ir siempre por la zona turística principal).',
+        done: false,
+      },
+      {
+        id: 'ba-3-4',
+        time: '19:30',
+        title: '🌉 Atardecer y Cena de Despedida en Puente de la Mujer (Puerto Madero)',
+        notes:
+          'Caminar por los diques iluminados de Puerto Madero y brindar por estos 3 días hermosos en Buenos Aires.',
         done: false,
       },
     ],

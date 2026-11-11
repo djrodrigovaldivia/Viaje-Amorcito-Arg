@@ -8,8 +8,8 @@ interface CatWelcomeModalProps {
   onOpenDailyLetter?: () => void;
 }
 
-const CUSTOM_CAT_PHOTO_KEY = 'amorcito_custom_cat_photo_v1';
-const DEFAULT_CAT_PHOTO = '/assets/gatito-amorcito.jpg';
+const CUSTOM_CAT_PHOTO_KEY = 'amorcito_custom_cat_photo_v2';
+const DEFAULT_CAT_PHOTO = '/assets/gatito-amorcito.jpg?v=2';
 
 export const CatWelcomeModal: React.FC<CatWelcomeModalProps> = ({
   isOpen,

@@ -185,49 +185,50 @@ export function generateOfflineResponse({
     }
   }
 
-  // 4. Schedule / Itinerario / Horarios de hoy
+  // 4. Emergency / SOS / Police
   if (
-    query.includes('horario') ||
-    query.includes('itinerario') ||
-    query.includes('schedule') ||
+    query.includes('sos') ||
+    query.includes('policia') ||
+    query.includes('policía') ||
+    query.includes('emergencia') ||
+    query.includes('ayuda') ||
+    query.includes('911') ||
+    query.includes('ambulancia') ||
+    query.includes('consulado') ||
+    query.includes('robaron') ||
+    query.includes('perdi')
+  ) {
+    return (
+      `🆘 **¡Aquí estoy contigo al tiro, mi amorcito! Números de emergencia en Buenos Aires:**\n\n` +
+      `• **🚓 Policía y Emergencias CABA:** Llama gratis al **911** (toca el botón rojo **🆘 SOS** abajo en la barra).\n` +
+      `• **👮‍♂️ Comisaría del Turista (24 hs):** **0800-999-5000** o **+54 9 11 5050-9260** (Av. Corrientes 436).\n` +
+      `• **🚑 Ambulancia Médica SAME:** Llama gratis al **107**.\n` +
+      `• **🇨🇱 Consulado de Chile en Buenos Aires:** **+54 11 4394-6582** (Av. Roque Sáenz Peña 547, a 2 cuadras del Obelisco).\n\n` +
+      `👉 *Toca el botón rojo **"🆘 SOS"** abajo a la derecha para llamar con 1 solo toque o mandar tu ubicación GPS por WhatsApp.*`
+    );
+  }
+
+  // 4b. Open-ended "What do you recommend / What can I do now" (Zero fixed itinerary!)
+  if (
+    query.includes('hacer') ||
+    query.includes('recomienda') ||
+    query.includes('panorama') ||
     query.includes('hoy') ||
     query.includes('plan') ||
-    query.includes('actividad') ||
-    query.includes('agenda') ||
-    query.includes('toca')
+    query.includes('donde voy') ||
+    query.includes('dónde voy') ||
+    query.includes('aburrida') ||
+    query.includes('ganas')
   ) {
-    if (itinerary && itinerary.length > 0) {
-      const totalActivities = itinerary.reduce(
-        (acc, d) => acc + (d.activities ? d.activities.length : 0),
-        0
-      );
-      const pendingActivities = itinerary.reduce(
-        (acc, d) => acc + (d.activities ? d.activities.filter((a) => !a.done).length : 0),
-        0
-      );
-
-      let text = `🗓️ **Mira mi amorcito, este es el resumen de tu itinerario:**\n\n`;
-      text += `Tienes **${itinerary.length} días** armados con **${totalActivities} panoramas** (${pendingActivities} por hacer):\n\n`;
-
-      itinerary.forEach((d) => {
-        text += `🔹 **Día ${d.dayNumber}: ${d.title}** (${d.city})\n`;
-        (d.activities || []).forEach((a) => {
-          text += `   • ${a.time ? `[${a.time} hrs]` : '•'} ${a.title} ${a.done ? '✅' : '⏳'}\n`;
-        });
-        if (d.tipsForMaria) {
-          text += `   💕 *${d.tipsForMaria}*\n`;
-        }
-        text += `\n`;
-      });
-
-      text += `👉 *Puedes ir marcando con un ticket ✅ lo que ya hiciste en el botón "Itinerario", mi amorcito.*`;
-      return text;
-    } else {
-      return (
-        `🗓️ **Amorcito, aún no tienes actividades anotadas en el itinerario.**\n\n` +
-        `Toca el botón **"Itinerario"** para ver o editar tus días en Argentina po.`
-      );
-    }
+    return (
+      `✨ **¡Mi amorcito lindo, aquí no hay horarios fijos, tú mandas 100% qué tienes ganas de hacer ahora!**\n\n` +
+      `Dime qué te tinca más en este momento y yo te llevo paso a paso:\n` +
+      `1. **👗 Vitrinear Ropa Usada & Vintage (@maria_la_vintage)**: Te llevo a *Juan Perez Vintage* (Marcelo T. de Alvear 1355, Recoleta) o *Galpón de Ropa* (Cabrera 4667, Palermo Soho).\n` +
+      `2. **🖤 Ver Tendencias Tipo Zara & Outlets al 50%**: Te guío a los *Outlets de Calle Aguirre 600-900* o a *Zara + Ver* en Av. Santa Fe 3253.\n` +
+      `3. **🏮 Ir al Barrio Chino o Mall Chinos**: Pasear por el arco del *Barrio Chino* en calle Arribeños (Belgrano) o los bazares gigantes de *Once*.\n` +
+      `4. **🥐 Tomar un cafecito con medialunas o comer Franuí**: Ir a *Rapanui* o pasear por el Obelisco, Recoleta o San Telmo.\n\n` +
+      `🎙️ *Dime con tu voz qué te dieron ganas de hacer y te digo al tiro cómo llegar y cuánto cuesta todo po, mi amorcito.*`
+    );
   }
 
   // 5. Opening Hours of Iconic Places
@@ -341,14 +342,14 @@ export function generateOfflineResponse({
   // Default warm Chilean male guide fallback calling her Amorcito
   return (
     `💕 **¡Hola mi amorcito lindo! 🇨🇱❤️🇦🇷**\n\n` +
-    `Aquí estoy contigo en tu iPhone (funcionando en modo ahorro de batería y 100% sin internet si estás en la calle).\n\n` +
+    `Aquí no tienes ningún horario fijo: **tú me dices qué tienes ganas de hacer ahora en Buenos Aires y yo te guío paso a paso** (funciono 100% sin internet si estás en la calle).\n\n` +
     `Háblame con el micrófono o pregúntame al tiro lo que te tinque:\n` +
+    `• *"Tengo ganas de ver ropa usada y tiendas tipo Zara baratas"*\n` +
+    `• *"¿Dónde estoy parada ahora y qué hay cerca mío?"*\n` +
+    `• *"Quiero ir al Barrio Chino o a un Mall Chino"*\n` +
+    `• *"¿Dónde tomo un cafecito rico o como helado?"*\n` +
     `• *"¿Qué clima hace y qué abrigo me pongo hoy?"*\n` +
-    `• *"¿Dónde estoy parada ahora y qué hay cerca?"*\n` +
-    `• *"¿Qué me toca hoy en mi itinerario?"*\n` +
-    `• *"¿Dónde tomo once o como helado rico?"*\n` +
-    `• *"¿Cómo funciona el Subte, la micro y el cambio de pesos?"*\n` +
     `• *"Extraño a Rodrigo"* 💌\n\n` +
-    `¡Dime no más mi amorcito, te escucho con todo el amor del mundo!`
+    `¡Dime no más qué quieres hacer mi amorcito, te escucho con todo el amor del mundo!`
   );
 }

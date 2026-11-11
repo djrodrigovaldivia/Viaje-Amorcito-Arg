@@ -277,23 +277,12 @@ export function getDailyRodrigoLetter(
     timeClosing = 'Descansa rico tus piernecitas esta noche y sueña bonito conmigo.';
   }
 
-  const activeDay =
-    schedule.find((d) => (d.activities || []).some((a) => !a.done)) ||
-    schedule[now.getDate() % Math.max(1, schedule.length)] ||
-    schedule[0];
-
-  const nextAct = activeDay?.activities?.find((a) => !a.done) || activeDay?.activities?.[0];
-
-  const itineraryContext = activeDay
-    ? `Hoy en tu Día ${activeDay.dayNumber} (${activeDay.city}): ${
-        nextAct ? `"${nextAct.title}"${nextAct.time ? ` a las ${nextAct.time} hrs` : ''}` : activeDay.title
-      }.`
-    : 'Hoy es un día libre hermoso para disfrutar a tu ritmo.';
+  const itineraryContext =
+    'Hoy no tienes ningún horario fijo ni obligación: tú mandas 100% qué tienes ganas de hacer y a dónde ir, y tu Guía IA te lleva paso a paso.';
 
   const city = userLocation
     ? findNearestArgentineCity(userLocation.lat, userLocation.lng)
-    : ARGENTINA_CITIES.find((c) => activeDay?.city?.toLowerCase().includes(c.name.toLowerCase())) ||
-      ARGENTINA_CITIES[0];
+    : ARGENTINA_CITIES[0];
 
   const weatherNote = `En ${city.name} hacen unos ${city.typicalNovTemp.min}°C a ${city.typicalNovTemp.max}°C (${city.defaultPacking.clothing[0]}).`;
 
@@ -319,7 +308,7 @@ export function getDailyRodrigoLetter(
         `${dayGreeting}\n\n${custom.content}\n\n` +
         `${fashionTipOfTheDay}\n\n` +
         `${argentinaTipOfTheDay}\n\n` +
-        `📍 ${itineraryContext}\n🧥 ${weatherNote}\n\nCon todo mi amor hoy (${dateStr}),\nTu Rodrigo ❤️`,
+        `✨ ${itineraryContext}\n🧥 ${weatherNote}\n\nCon todo mi amor hoy (${dateStr}),\nTu Rodrigo ❤️`,
       itineraryContext,
       weatherNote,
       fashionTipOfTheDay,
@@ -335,7 +324,7 @@ export function getDailyRodrigoLetter(
     `${chosen.body}\n\n` +
     `${fashionTipOfTheDay}\n\n` +
     `${argentinaTipOfTheDay}\n\n` +
-    `🗓️ **Tu panorama de hoy (${dateStr}):** ${itineraryContext}\n` +
+    `✨ **A tu propio ritmo hoy (${dateStr}):** ${itineraryContext}\n` +
     `🧥 **Qué abrigo ponerte hoy:** ${weatherNote}\n\n` +
     `${timeClosing}\n` +
     `Te ama hoy y siempre, tu Rodrigo ❤️`;

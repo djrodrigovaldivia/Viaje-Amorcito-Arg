@@ -42,7 +42,7 @@ interface EssentialModeViewProps {
   isOnline: boolean;
   onRequestLocation: () => void;
   onSwitchToMapMode: () => void;
-  onOpenSchedule: () => void;
+  onOpenSOS: () => void;
   onOpenWeather: () => void;
   onOpenDiary: () => void;
   onOpenAI: (startWithMic?: boolean) => void;
@@ -58,7 +58,7 @@ export const EssentialModeView: React.FC<EssentialModeViewProps> = ({
   isOnline,
   onRequestLocation,
   onSwitchToMapMode,
-  onOpenSchedule,
+  onOpenSOS,
   onOpenWeather,
   onOpenDiary,
   onOpenAI,
@@ -86,15 +86,6 @@ export const EssentialModeView: React.FC<EssentialModeViewProps> = ({
   }, [isOnline]);
 
   const dailyLetter = getDailyRodrigoLetter(schedule, userLocation, 0);
-
-  // Next pending activity
-  const nextActivity = (() => {
-    for (const day of schedule) {
-      const pending = (day.activities || []).find((a) => !a.done);
-      if (pending) return { day, activity: pending };
-    }
-    return schedule[0] ? { day: schedule[0], activity: schedule[0].activities?.[0] } : null;
-  })();
 
   // Current city weather estimate (0 network drain)
   const currentCity = userLocation
@@ -538,25 +529,23 @@ export const EssentialModeView: React.FC<EssentialModeViewProps> = ({
             </div>
           </button>
 
-          {/* Card 3: Today's Itinerary */}
+          {/* Card 3: Fast SOS Police 911 & Emergency */}
           <button
-            onClick={onOpenSchedule}
-            className="p-4 rounded-3xl bg-slate-950 border border-slate-800 hover:border-sky-500/50 text-left flex items-start gap-3.5 active:scale-[0.99] transition-all"
+            onClick={onOpenSOS}
+            className="p-4 rounded-3xl bg-gradient-to-r from-red-950/80 to-slate-950 border-2 border-red-500/60 hover:border-red-400 text-left flex items-start gap-3.5 active:scale-[0.99] transition-all"
           >
-            <div className="w-12 h-12 rounded-2xl bg-sky-500/15 border border-sky-500/30 flex items-center justify-center text-sky-400 shrink-0">
-              <Calendar className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-2xl bg-red-600 flex items-center justify-center text-white shrink-0 shadow-lg">
+              <ShieldAlert className="w-6 h-6" />
             </div>
             <div className="min-w-0 flex-1">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-sky-400 block">
-                3. Mi Itinerario de Hoy
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-red-300 block">
+                3. 🆘 SOS Emergencia Policial (1 Toque)
               </span>
               <h3 className="text-sm font-extrabold text-white truncate mt-0.5">
-                {nextActivity?.activity
-                  ? `${nextActivity.activity.time ? nextActivity.activity.time + ' - ' : ''}${nextActivity.activity.title}`
-                  : 'Ver mis días y horarios'}
+                Llamar 911 Policía / Enviar mi GPS
               </h3>
-              <p className="text-xs text-slate-400 truncate mt-0.5">
-                {nextActivity?.day ? `Día ${nextActivity.day.dayNumber} • ${nextActivity.day.city}` : 'Funciona 100% sin internet'}
+              <p className="text-xs text-red-200/90 truncate mt-0.5">
+                Policía Buenos Aires, Ambulancia 107 y Consulado
               </p>
             </div>
           </button>
@@ -622,7 +611,7 @@ export const EssentialModeView: React.FC<EssentialModeViewProps> = ({
                 {userLocation ? `Ubicada cerca de ${currentCity.name}` : 'Detectar mi ubicación GPS'}
               </h3>
               <p className="text-xs text-slate-400 mt-0.5">
-                Abrir mapa con capa de Ropa Usada y Calles
+                Abrir mapa con nombre de calles y tiendas
               </p>
             </div>
           </button>
@@ -639,11 +628,11 @@ export const EssentialModeView: React.FC<EssentialModeViewProps> = ({
           </button>
 
           <button
-            onClick={() => onOpenQuickHub('sos')}
-            className="flex-1 py-3 px-4 rounded-2xl bg-slate-950 border border-amber-500/30 text-amber-300 text-xs font-extrabold flex items-center justify-center gap-1.5"
+            onClick={onOpenSOS}
+            className="flex-1 py-3 px-4 rounded-2xl bg-red-600 hover:bg-red-500 text-white text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-lg"
           >
             <ShieldAlert className="w-4 h-4" />
-            <span>🆘 SOS y Diccionario</span>
+            <span>🆘 SOS Policía 911</span>
           </button>
 
           <button
@@ -651,7 +640,7 @@ export const EssentialModeView: React.FC<EssentialModeViewProps> = ({
             className="w-full sm:w-auto py-3 px-5 rounded-2xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white text-xs font-extrabold flex items-center justify-center gap-1.5"
           >
             <Map className="w-4 h-4 text-sky-400" />
-            <span>🗺️ Ver Mapa con Capa Ropa Usada y Modelos 3D</span>
+            <span>🗺️ Ver Mapa de Calles y Tiendas</span>
           </button>
         </div>
       </div>

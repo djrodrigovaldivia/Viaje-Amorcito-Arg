@@ -5,12 +5,9 @@ import { DaySchedule } from './types/schedule';
 import { useOnlineStatus } from './hooks/useOnlineStatus';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import { GoogleMapView } from './components/GoogleMapView';
-import { TourControls } from './components/TourControls';
-import { LandmarkSidebar } from './components/LandmarkSidebar';
 import { LandmarkDetailModal } from './components/LandmarkDetailModal';
 import { TriviaModal } from './components/TriviaModal';
 import { DistanceCalculator } from './components/DistanceCalculator';
-import { MariaScheduleModal } from './components/MariaScheduleModal';
 import { MariaAIAssistantModal } from './components/MariaAIAssistantModal';
 import { UserHelpModal } from './components/UserHelpModal';
 import { IntroWelcomeModal } from './components/IntroWelcomeModal';
@@ -19,19 +16,14 @@ import { WeatherModal } from './components/WeatherModal';
 import { MariaQuickHubModal, QuickHubTab } from './components/MariaQuickHubModal';
 import { EssentialModeView } from './components/EssentialModeView';
 import { CatWelcomeModal } from './components/CatWelcomeModal';
+import { SOSEmergencyModal } from './components/SOSEmergencyModal';
 import { stopAllVoicePlayback, unlockIOSAudio } from './services/voiceService';
 import { syncDailyExchangeRates } from './services/currencyAndLetterService';
 import {
   Sparkles,
-  HelpCircle,
-  Clock,
   MapPin,
   X,
-  Calendar,
   Heart,
-  Wifi,
-  WifiOff,
-  Download,
   Smartphone,
   Camera,
   CloudSun,
@@ -42,6 +34,7 @@ import {
   Map as MapIcon,
   Mic,
   ShoppingBag,
+  ShieldAlert,
 } from 'lucide-react';
 
 // Lazy-load Three.js 3D Engine so it consumes 0% RAM & battery until a 3D model is opened
@@ -50,10 +43,11 @@ const LazyThreeLandmarkModel = React.lazy(() => import('./components/ThreeLandma
 export default function App() {
   const [landmarks] = useState<Landmark[]>(LANDMARKS);
   const [selectedLandmark, setSelectedLandmark] = useState<Landmark>(LANDMARKS[0]);
-  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const [mapType, setMapType] = useState<'hybrid' | 'roadmap' | 'satellite' | 'terrain'>('hybrid');
+  // Default to 'roadmap' so street names in Buenos Aires are clear and readable right away
+  const [mapType, setMapType] = useState<'hybrid' | 'roadmap' | 'satellite' | 'terrain'>('roadmap');
   const [is3DTiltEnabled, setIs3DTiltEnabled] = useState(false);
   const [focusedVintageSpotId, setFocusedVintageSpotId] = useState<string | null>(null);
+  const [openStoreListTrigger, setOpenStoreListTrigger] = useState<number>(0);
 
   // ALWAYS open the Cat Welcome Modal every time the app is opened ("Hola mamiii que tengas un hermoso dia  -_- , miaauu")
   const [isCatModalOpen, setIsCatModalOpen] = useState<boolean>(true);
@@ -85,24 +79,11 @@ export default function App() {
   }, [isOnline]);
 
   // PWA Install Prompt Hook
-  const { isInstallable, isInstalled, isIOS, install } = usePWAInstall();
+  const { isInstalled, isIOS } = usePWAInstall();
   const [showIOSInstallGuide, setShowIOSInstallGuide] = useState(false);
 
-  // Amorcito's Schedule with local storage persistence
-  const [schedule, setSchedule] = useState<DaySchedule[]>(() => {
-    try {
-      const saved = localStorage.getItem('maria_ignacia_argentina_schedule');
-      if (saved) return JSON.parse(saved);
-    } catch (_) {}
-    return DEFAULT_MARIA_SCHEDULE;
-  });
-
-  const handleUpdateSchedule = (newSchedule: DaySchedule[]) => {
-    setSchedule(newSchedule);
-    try {
-      localStorage.setItem('maria_ignacia_argentina_schedule', JSON.stringify(newSchedule));
-    } catch (_) {}
-  };
+  // Keep schedule array only for Diary / Weather compatibility (no fixed itinerary UI)
+  const [schedule] = useState<DaySchedule[]>(DEFAULT_MARIA_SCHEDULE);
 
   // Single-Pulse GPS Geolocation with Offline Memory Persistence (Saves iPhone Battery)
   const [userLocation, setUserLocation] = useState<{
@@ -125,7 +106,7 @@ export default function App() {
       return;
     }
 
-    setLocationToast('📡 Buscando tu ubicación GPS (pulso rápido de 1s)...');
+    setLocationToast('📡 Buscando tu ubicación en Buenos Aires...');
 
     navigator.geolocation.getCurrentPosition(
       (pos) => {
@@ -134,14 +115,14 @@ export default function App() {
         try {
           localStorage.setItem('maria_last_gps_location', JSON.stringify(coords));
         } catch (_) {}
-        setLocationToast('¡Ubicación lista! Estás acá, mi Amorcito 💕 (GPS en reposo para ahorrar batería)');
-        setTimeout(() => setLocationToast(null), 4000);
+        setLocationToast('¡Ubicación lista! Estás acá, mi Amorcito 💕');
+        setTimeout(() => setLocationToast(null), 3500);
       },
       () => {
         const fallback = userLocation || { lat: -34.6037, lng: -58.3816 };
         setUserLocation(fallback);
-        setLocationToast('📍 Ubicada en Buenos Aires (usando última posición guardada)');
-        setTimeout(() => setLocationToast(null), 3500);
+        setLocationToast('📍 Ubicada en Buenos Aires (CABA)');
+        setTimeout(() => setLocationToast(null), 3000);
       },
       { enableHighAccuracy: false, maximumAge: 120000, timeout: 7000 }
     );
@@ -152,7 +133,6 @@ export default function App() {
   const [active3DModelLandmark, setActive3DModelLandmark] = useState<Landmark | null>(null);
   const [isTriviaOpen, setIsTriviaOpen] = useState(false);
   const [isDistanceOpen, setIsDistanceOpen] = useState(false);
-  const [isScheduleOpen, setIsScheduleOpen] = useState(false);
   const [isAIAssistantOpen, setIsAIAssistantOpen] = useState(false);
   const [autoStartAIMic, setAutoStartAIMic] = useState(false);
   const [isHelpOpen, setIsHelpOpen] = useState(false);
@@ -164,6 +144,7 @@ export default function App() {
   const [isWeatherOpen, setIsWeatherOpen] = useState(false);
   const [isQuickHubOpen, setIsQuickHubOpen] = useState(false);
   const [quickHubTab, setQuickHubTab] = useState<QuickHubTab>('menu');
+  const [isSOSOpen, setIsSOSOpen] = useState(false);
 
   const openQuickHub = (tab: QuickHubTab = 'menu') => {
     setQuickHubTab(tab);
@@ -182,7 +163,7 @@ export default function App() {
     setFocusedVintageSpotId(spotId);
   };
 
-  // Page Visibility API Battery Saver: Stop audio and freeze background work when iPhone locks
+  // Page Visibility API Battery Saver: Stop audio when iPhone screen locks
   useEffect(() => {
     const onVisibilityChange = () => {
       if (document.hidden) {
@@ -193,19 +174,18 @@ export default function App() {
     return () => document.removeEventListener('visibilitychange', onVisibilityChange);
   }, []);
 
-  // Silent Background Offline Pre-Warmer when connected to hotel Wi-Fi
+  // Silent Background Offline Pre-Warmer for Buenos Aires Street Map Tiles
   useEffect(() => {
     if (!isOnline) return;
     try {
-      const prewarmed = sessionStorage.getItem('arg3d_offline_prewarmed_v1');
+      const prewarmed = sessionStorage.getItem('arg3d_offline_prewarmed_v2');
       if (prewarmed) return;
-      sessionStorage.setItem('arg3d_offline_prewarmed_v1', 'true');
+      sessionStorage.setItem('arg3d_offline_prewarmed_v2', 'true');
 
       const timer = setTimeout(() => {
         const keyUrls = [
-          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/4/9/5',
-          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/4/9/5',
           'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/12/2468/1381',
+          'https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/13/4936/2763',
         ];
         keyUrls.forEach((u) => {
           const img = new Image();
@@ -216,133 +196,65 @@ export default function App() {
     } catch (_) {}
   }, [isOnline]);
 
-  // Low-frequency clock (60s interval, skipped when iPhone screen is off)
-  const [argTime, setArgTime] = useState<string>('');
-  useEffect(() => {
-    const updateTime = () => {
-      if (typeof document !== 'undefined' && document.hidden) return;
-      const now = new Date();
-      setArgTime(
-        now.toLocaleTimeString('es-AR', {
-          timeZone: 'America/Argentina/Buenos_Aires',
-          hour: '2-digit',
-          minute: '2-digit',
-        })
-      );
-    };
-    updateTime();
-    const interval = setInterval(updateTime, 60000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const handleFlyToLandmarkId = (landmarkId: string) => {
-    const target = landmarks.find((l) => l.id === landmarkId);
-    if (target) {
-      setSelectedLandmark(target);
-      setIsEssentialMode(false);
-    }
-  };
-
   return (
     <div className="relative w-screen h-[100dvh] flex flex-col bg-black text-slate-100 overflow-hidden font-sans pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-      {/* Main Top Navbar */}
-      <header className="h-14 bg-slate-950 border-b border-slate-800/90 px-2.5 sm:px-4 flex items-center justify-between shrink-0 z-40 gap-2">
-        {/* Brand & Amorcito Badge */}
+      {/* =====================================================================
+          CLEAN, UNCLUTTERED TOP HEADER BAR
+         ===================================================================== */}
+      <header className="h-12 bg-slate-950 border-b border-slate-800/90 px-2.5 sm:px-4 flex items-center justify-between shrink-0 z-40 gap-2">
+        {/* Left: Brand & Amorcito Badge */}
         <div className="flex items-center gap-2 shrink-0">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-b from-sky-400 via-white to-sky-400 flex items-center justify-center shadow-sm ring-2 ring-sky-400/40 shrink-0">
-            <span className="text-amber-500 text-xs font-bold leading-none">☀️</span>
+          <div className="w-7 h-7 rounded-full bg-gradient-to-b from-sky-400 via-white to-sky-400 flex items-center justify-center shadow-sm ring-1 ring-sky-400/40 shrink-0">
+            <span className="text-amber-500 text-[11px] font-bold leading-none">☀️</span>
           </div>
-          <div>
-            <h1 className="text-xs sm:text-sm font-extrabold tracking-tight text-white flex items-center gap-1.5">
-              <span className="hidden xs:inline">Argentina</span>
-              <span className="px-2 py-0.5 rounded-full bg-pink-500/20 text-pink-300 border border-pink-400/40 text-[10px] font-extrabold flex items-center gap-1">
-                <Heart className="w-2.5 h-2.5 fill-current text-pink-400" />
-                <span>Mi Amorcito 💕</span>
-              </span>
-            </h1>
-          </div>
+          <span className="px-2.5 py-1 rounded-full bg-pink-500/20 text-pink-200 border border-pink-400/40 text-xs font-extrabold flex items-center gap-1">
+            <Heart className="w-3 h-3 fill-current text-pink-400" />
+            <span>Mi Amorcito 💕</span>
+          </span>
         </div>
 
-        {/* Top Navbar Actions (Scrollable on narrow screens) */}
+        {/* Right: Essential Quick Actions */}
         <div className="flex items-center gap-1.5 overflow-x-auto no-scrollbar py-1">
           {/* 🐱 Cat Greeting Trigger Button */}
           <button
             onClick={() => setIsCatModalOpen(true)}
             className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-pink-500/15 hover:bg-pink-500/25 border border-pink-400/40 text-pink-200 font-extrabold text-xs transition-all shrink-0"
-            title="Ver foto de tu gatito: Hola mamiii que tengas un hermoso dia -_- , miaauu"
+            title="Saludo de tu gatito"
           >
             <span>🐱</span>
-            <span className="hidden sm:inline">Miau</span>
+            <span className="hidden xs:inline">Miau</span>
           </button>
 
-          {/* 1-TAP ESSENTIAL / BATTERY SAVER MODE TOGGLE FOR IPHONE */}
+          {/* 1-TAP ESSENTIAL / BATTERY SAVER MODE TOGGLE */}
           <button
             onClick={() => handleToggleEssentialMode(!isEssentialMode)}
-            className={`flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl text-xs font-extrabold transition-all shrink-0 border ${
+            className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-xs font-extrabold transition-all shrink-0 border ${
               isEssentialMode
                 ? 'bg-emerald-600 text-white border-emerald-400 shadow-md'
                 : 'bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border-emerald-500/40'
             }`}
-            title="Alternar entre el Modo Esencial OLED (Ahorro máximo de batería y voz gigante) y el Mapa 3D"
           >
             {isEssentialMode ? (
               <>
                 <MapIcon className="w-3.5 h-3.5" />
-                <span>Ver Mapa 3D</span>
+                <span>Ver Mapa</span>
               </>
             ) : (
               <>
                 <BatteryCharging className="w-3.5 h-3.5 text-emerald-400" />
-                <span>✨ Modo Simple</span>
+                <span>Modo Simple</span>
               </>
             )}
           </button>
 
-          {/* Direct Voice Button */}
+          {/* Weather & Packing Button */}
           <button
-            onClick={() => handleOpenAI(true)}
-            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white font-extrabold text-xs transition-all shrink-0 shadow-md"
-            title="Hablarle con tu voz a tu guía chileno"
+            onClick={() => setIsWeatherOpen(true)}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/40 text-sky-300 font-bold text-xs transition-all shrink-0"
+            title="Clima en Buenos Aires"
           >
-            <Mic className="w-3.5 h-3.5" />
-            <span>🎙️ Hablar</span>
-          </button>
-
-          {/* Ropa Usada, Zara & Mall Chinos Button */}
-          <button
-            onClick={() => openQuickHub('fashion')}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-fuchsia-500/20 hover:bg-fuchsia-500/30 border border-fuchsia-400/40 text-fuchsia-200 font-extrabold text-xs transition-all shrink-0"
-            title="Ruta @maria_la_vintage: Ropa Usada, Tiendas tipo Zara accesibles y Mall Chinos"
-          >
-            <ShoppingBag className="w-3.5 h-3.5 text-fuchsia-400" />
-            <span>👗 Ropa Usada & Zara</span>
-          </button>
-
-          {/* Rodrigo's Daily Love Letter Button */}
-          <button
-            onClick={() => openQuickHub('letters')}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-400/40 text-rose-200 font-bold text-xs transition-all shrink-0"
-          >
-            <MailOpen className="w-3.5 h-3.5 text-rose-400" />
-            <span>Cartita 💌</span>
-          </button>
-
-          {/* Quick Currency & Tip Calculator Button */}
-          <button
-            onClick={() => openQuickHub('calculator')}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-400/40 text-emerald-300 font-bold text-xs transition-all shrink-0"
-          >
-            <Calculator className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Cambio $</span>
-          </button>
-
-          {/* Easy Quick Hub Button */}
-          <button
-            onClick={() => openQuickHub('menu')}
-            className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-pink-500/40 text-pink-200 font-bold text-xs transition-all shrink-0"
-          >
-            <LayoutGrid className="w-3.5 h-3.5 text-pink-400" />
-            <span>Menú Fácil</span>
+            <CloudSun className="w-3.5 h-3.5 text-sky-400" />
+            <span className="hidden sm:inline">Clima</span>
           </button>
 
           {/* Travel Diary Button */}
@@ -351,76 +263,31 @@ export default function App() {
               setDiarySelectedDayNumber(undefined);
               setIsDiaryOpen(true);
             }}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-pink-500/20 hover:bg-pink-500/30 border border-pink-400/40 text-pink-300 font-bold text-xs transition-all shrink-0"
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-pink-500/15 hover:bg-pink-500/25 border border-pink-400/40 text-pink-300 font-bold text-xs transition-all shrink-0"
+            title="Diario de Fotos"
           >
             <Camera className="w-3.5 h-3.5 text-pink-400" />
-            <span className="hidden sm:inline">Diario</span>
+            <span className="hidden sm:inline">Fotos</span>
           </button>
 
-          {/* Weather & Packing Button */}
+          {/* More / Quick Hub Button */}
           <button
-            onClick={() => setIsWeatherOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-sky-500/20 hover:bg-sky-500/30 border border-sky-400/40 text-sky-300 font-bold text-xs transition-all shrink-0"
+            onClick={() => openQuickHub('menu')}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-bold text-xs transition-all shrink-0"
+            title="Menú completo"
           >
-            <CloudSun className="w-3.5 h-3.5 text-sky-400" />
-            <span className="hidden sm:inline">Clima</span>
+            <LayoutGrid className="w-3.5 h-3.5 text-pink-400" />
+            <span className="hidden md:inline">Menú</span>
           </button>
-
-          {/* My Itinerary Button */}
-          <button
-            onClick={() => setIsScheduleOpen(true)}
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 font-semibold text-xs transition-all shrink-0"
-          >
-            <Calendar className="w-3.5 h-3.5 text-slate-300" />
-            <span className="hidden lg:inline">Itinerario</span>
-          </button>
-
-          {/* Connectivity Status Tag */}
-          <div
-            className={`hidden xl:flex items-center gap-1 px-2 py-1 rounded-xl text-[10px] font-bold border shrink-0 ${
-              isOnline
-                ? 'bg-emerald-500/10 text-emerald-300 border-emerald-500/30'
-                : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
-            }`}
-          >
-            {isOnline ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-            <span>{isOnline ? 'Wi-Fi' : 'Offline'}</span>
-          </div>
-
-          {/* Clock */}
-          <div className="hidden 2xl:flex items-center gap-1 px-2 py-1 rounded-xl bg-slate-900 border border-slate-800 text-slate-300 font-mono text-[10px] shrink-0">
-            <Clock className="w-3 h-3 text-sky-400" />
-            <span>{argTime || '12:00'}</span>
-          </div>
-
-          {/* Help Button */}
-          <button
-            onClick={() => setIsHelpOpen(true)}
-            className="p-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300 shrink-0"
-            title="Ayuda"
-          >
-            <HelpCircle className="w-4 h-4" />
-          </button>
-
-          {/* In-App PWA Install Button */}
-          {isInstallable && !isInstalled && (
-            <button
-              onClick={install}
-              className="hidden sm:flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900 text-emerald-400 border border-emerald-500/40 text-xs font-semibold shrink-0"
-            >
-              <Download className="w-3.5 h-3.5" />
-              <span>Instalar</span>
-            </button>
-          )}
 
           {/* iOS Safari Guide Button */}
           {isIOS && !isInstalled && (
             <button
               onClick={() => setShowIOSInstallGuide(true)}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900 text-sky-300 border border-sky-500/40 text-xs font-bold shrink-0"
+              className="p-1.5 rounded-xl bg-slate-900 text-sky-300 border border-sky-500/40 text-xs font-bold shrink-0"
+              title="Instalar en iPhone"
             >
               <Smartphone className="w-3.5 h-3.5" />
-              <span>iPhone</span>
             </button>
           )}
         </div>
@@ -428,13 +295,15 @@ export default function App() {
 
       {/* Floating GPS Location Notification Toast */}
       {locationToast && (
-        <div className="absolute top-16 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-2xl bg-gradient-to-r from-pink-600 to-indigo-600 text-white text-xs font-bold shadow-2xl border border-white/30 max-w-[92vw]">
+        <div className="absolute top-14 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 px-4 py-2 rounded-2xl bg-gradient-to-r from-pink-600 to-indigo-600 text-white text-xs font-bold shadow-2xl border border-white/30 max-w-[92vw]">
           <Heart className="w-4 h-4 fill-current text-white shrink-0" />
           <span>{locationToast}</span>
         </div>
       )}
 
-      {/* Main Content Stage: Either Ultra-Low Battery Essential Mode OR Full Interactive Map & 3D Explorer */}
+      {/* =====================================================================
+          MAIN STAGE: Either Essential Mode OR Clean Street Map + 5-Tab Bottom Bar
+         ===================================================================== */}
       {isEssentialMode ? (
         <main className="relative flex-1 w-full overflow-hidden bg-black">
           <EssentialModeView
@@ -443,7 +312,7 @@ export default function App() {
             isOnline={isOnline}
             onRequestLocation={handleRequestLocation}
             onSwitchToMapMode={() => handleToggleEssentialMode(false)}
-            onOpenSchedule={() => setIsScheduleOpen(true)}
+            onOpenSOS={() => setIsSOSOpen(true)}
             onOpenWeather={() => setIsWeatherOpen(true)}
             onOpenDiary={() => {
               setDiarySelectedDayNumber(undefined);
@@ -457,38 +326,13 @@ export default function App() {
       ) : (
         <>
           <main className="relative flex-1 w-full overflow-hidden">
-            {/* Floating Quick Pills Banner for Amorcito */}
-            <div className="absolute top-3 left-1/2 -translate-x-1/2 z-20 flex flex-wrap items-center justify-center gap-1.5 pointer-events-auto max-w-[94vw]">
-              <button
-                onClick={() => openQuickHub('letters')}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-950/95 hover:bg-slate-900 border border-pink-500/50 text-pink-200 text-xs font-extrabold shadow-xl transition-all"
-              >
-                <span className="w-2 h-2 rounded-full bg-pink-400 animate-pulse" />
-                <span>💌 Cartita y Tips de Hoy</span>
-              </button>
-
-              <button
-                onClick={() => handleOpenAI(true)}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 border border-white/30 text-white text-xs font-extrabold shadow-xl transition-all"
-              >
-                <Mic className="w-3.5 h-3.5" />
-                <span>Hablar con Guía IA (Voz Chilena)</span>
-              </button>
-
-              <button
-                onClick={() => setIsIntroOpen(true)}
-                className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-slate-950/95 hover:bg-slate-900 border border-sky-500/40 text-sky-300 text-xs font-bold shadow-xl transition-all"
-              >
-                <span>🎙️ Audio de Bienvenida</span>
-              </button>
-            </div>
-
-            {/* High-Resolution Free Satellite & Street Map View + Ropa Usada & Zara Layer */}
+            {/* Clean Buenos Aires Street Map with 1-Layer-At-A-Time Filter Bar */}
             <GoogleMapView
               landmarks={landmarks}
               selectedLandmark={selectedLandmark}
               onSelectLandmark={setSelectedLandmark}
               onOpen3DModal={setActive3DModelLandmark}
+              onOpenLandmarkDetails={setActiveDetailLandmark}
               mapType={mapType}
               onChangeMapType={setMapType}
               is3DTiltEnabled={is3DTiltEnabled}
@@ -497,38 +341,62 @@ export default function App() {
               onRequestLocation={handleRequestLocation}
               focusedVintageSpotId={focusedVintageSpotId}
               onClearFocusedVintageSpot={() => setFocusedVintageSpotId(null)}
-            />
-
-            {/* Collapsible Left Explorer Sidebar */}
-            <LandmarkSidebar
-              landmarks={landmarks}
-              selectedLandmark={selectedLandmark}
-              onSelectLandmark={setSelectedLandmark}
-              onOpenDetails={setActiveDetailLandmark}
-              onOpen3DModal={setActive3DModelLandmark}
-              isOpen={isSidebarOpen}
-              onToggleOpen={() => setIsSidebarOpen(!isSidebarOpen)}
+              externalOpenStoreListTrigger={openStoreListTrigger}
             />
           </main>
 
-          {/* Bottom Tour Player & Chilean Audioguide Controller */}
-          <TourControls
-            landmarks={landmarks}
-            selectedLandmark={selectedLandmark}
-            onSelectLandmark={setSelectedLandmark}
-            onOpenDetails={setActiveDetailLandmark}
-            onOpenTrivia={() => setIsTriviaOpen(true)}
-            onOpenDistance={() => setIsDistanceOpen(true)}
-            onOpen3DModel={setActive3DModelLandmark}
-            onOpenSchedule={() => setIsScheduleOpen(true)}
-            onOpenDiary={() => {
-              setDiarySelectedDayNumber(undefined);
-              setIsDiaryOpen(true);
-            }}
-            onOpenWeather={() => setIsWeatherOpen(true)}
-            onOpenAI={() => handleOpenAI(false)}
-            onOpenHelp={() => setIsHelpOpen(true)}
-          />
+          {/* =====================================================================
+              CLEAN 5-BUTTON IPHONE BOTTOM NAVIGATION BAR (Zero Itinerary, Fast SOS!)
+             ===================================================================== */}
+          <nav className="h-16 bg-slate-950 border-t border-slate-800/90 px-2 flex items-center justify-around shrink-0 z-40">
+            {/* 1. Tiendas (Ropa Usada, Zara & Chinos) */}
+            <button
+              onClick={() => setOpenStoreListTrigger((c) => c + 1)}
+              className="flex flex-col items-center justify-center gap-1 py-1 px-2 rounded-2xl text-pink-300 hover:text-pink-200 active:scale-95 transition-all"
+            >
+              <ShoppingBag className="w-5 h-5 text-pink-400" />
+              <span className="text-[10px] font-extrabold tracking-tight">Tiendas (10)</span>
+            </button>
+
+            {/* 2. Cartita y Tips del Día */}
+            <button
+              onClick={() => openQuickHub('letters')}
+              className="flex flex-col items-center justify-center gap-1 py-1 px-2 rounded-2xl text-rose-300 hover:text-rose-200 active:scale-95 transition-all"
+            >
+              <MailOpen className="w-5 h-5 text-rose-400" />
+              <span className="text-[10px] font-extrabold tracking-tight">Cartita 💌</span>
+            </button>
+
+            {/* 3. Center Primary Button: Guía IA (Ella le dice qué quiere hacer y el Guía la lleva) */}
+            <button
+              onClick={() => handleOpenAI(true)}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-2xl bg-gradient-to-r from-pink-600 via-rose-600 to-indigo-600 text-white font-extrabold text-xs shadow-lg shadow-pink-600/30 border border-white/25 active:scale-95 transition-all"
+            >
+              <Mic className="w-4 h-4" />
+              <span>Guía IA</span>
+            </button>
+
+            {/* 4. Calculadora Cambio CLP <-> ARS */}
+            <button
+              onClick={() => openQuickHub('calculator')}
+              className="flex flex-col items-center justify-center gap-1 py-1 px-2 rounded-2xl text-emerald-300 hover:text-emerald-200 active:scale-95 transition-all"
+            >
+              <Calculator className="w-5 h-5 text-emerald-400" />
+              <span className="text-[10px] font-extrabold tracking-tight">Cambio $</span>
+            </button>
+
+            {/* 5. Fast SOS Police 911 & Emergency Button */}
+            <button
+              onClick={() => setIsSOSOpen(true)}
+              className="flex flex-col items-center justify-center gap-0.5 py-1.5 px-3 rounded-2xl bg-red-600/20 hover:bg-red-600/30 border border-red-500/60 text-red-200 active:scale-95 transition-all"
+              title="Llamar rápido al 911 Policía de Buenos Aires o Emergencias"
+            >
+              <ShieldAlert className="w-5 h-5 text-red-400" />
+              <span className="text-[10px] font-extrabold tracking-tight text-red-300">
+                🆘 SOS 911
+              </span>
+            </button>
+          </nav>
         </>
       )}
 
@@ -539,6 +407,14 @@ export default function App() {
         onOpenDailyLetter={() => openQuickHub('letters')}
       />
 
+      {/* FAST SOS POLICE 911 & EMERGENCY MODAL */}
+      <SOSEmergencyModal
+        isOpen={isSOSOpen}
+        onClose={() => setIsSOSOpen(false)}
+        userLocation={userLocation}
+        onRequestLocation={handleRequestLocation}
+      />
+
       {/* Easy Quick Hub Modal for Amorcito */}
       <MariaQuickHubModal
         isOpen={isQuickHubOpen}
@@ -546,7 +422,7 @@ export default function App() {
         schedule={schedule}
         userLocation={userLocation}
         onRequestLocation={handleRequestLocation}
-        onOpenSchedule={() => setIsScheduleOpen(true)}
+        onOpenSchedule={() => setIsSOSOpen(true)}
         onOpenDiary={() => {
           setDiarySelectedDayNumber(undefined);
           setIsDiaryOpen(true);
@@ -558,25 +434,6 @@ export default function App() {
         onOpenDistance={() => setIsDistanceOpen(true)}
         onFlyToVintageSpot={handleFlyToVintageSpot}
         initialTab={quickHubTab}
-      />
-
-      {/* Amorcito's Schedule Modal */}
-      <MariaScheduleModal
-        isOpen={isScheduleOpen}
-        onClose={() => setIsScheduleOpen(false)}
-        schedule={schedule}
-        onUpdateSchedule={handleUpdateSchedule}
-        onFlyToLandmarkId={handleFlyToLandmarkId}
-        onAskAIAboutSchedule={() => {
-          setIsScheduleOpen(false);
-          handleOpenAI(false);
-        }}
-        onOpenWeatherModal={() => setIsWeatherOpen(true)}
-        onOpenDiaryForDay={(dayNum) => {
-          setDiarySelectedDayNumber(dayNum);
-          setIsDiaryOpen(true);
-        }}
-        isOnline={isOnline}
       />
 
       {/* Travel Diary Modal */}
@@ -599,7 +456,7 @@ export default function App() {
         isOnline={isOnline}
       />
 
-      {/* AI Travel Assistant Modal */}
+      {/* AI Travel Assistant Modal (She tells the Guide what she wants to do!) */}
       <MariaAIAssistantModal
         isOpen={isAIAssistantOpen}
         onClose={() => setIsAIAssistantOpen(false)}
@@ -619,7 +476,7 @@ export default function App() {
       <UserHelpModal
         isOpen={isHelpOpen}
         onClose={() => setIsHelpOpen(false)}
-        onOpenSchedule={() => setIsScheduleOpen(true)}
+        onOpenSchedule={() => setIsSOSOpen(true)}
         onOpenAI={() => handleOpenAI(false)}
         onOpenDiary={() => setIsDiaryOpen(true)}
         onOpenWeather={() => setIsWeatherOpen(true)}
@@ -629,7 +486,7 @@ export default function App() {
       <IntroWelcomeModal
         isOpen={isIntroOpen}
         onClose={() => setIsIntroOpen(false)}
-        onOpenSchedule={() => setIsScheduleOpen(true)}
+        onOpenSchedule={() => setIsSOSOpen(true)}
         onOpenAI={() => handleOpenAI(true)}
         onRequestLocation={handleRequestLocation}
         onOpenVoiceStudio={() => openQuickHub('voice-studio')}
@@ -730,7 +587,7 @@ export default function App() {
               </button>
             </div>
             <p className="text-xs text-slate-300 leading-relaxed mb-4">
-              Para tener esta app en tu iPhone y abrirla 100% sin internet en Argentina:
+              Para tener esta app en tu iPhone y abrirla 100% sin internet en Buenos Aires:
               <br />
               <br />
               1. En Safari, toca el botón <strong>Compartir</strong> (el cuadradito con la flecha
