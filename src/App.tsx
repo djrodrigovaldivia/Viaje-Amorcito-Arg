@@ -122,27 +122,6 @@ export default function App() {
     } catch (_) {}
   }, []);
 
-  // Quota exceeded state (Tier 2 Client-Side Quota Defense)
-  const [quotaExceeded, setQuotaExceeded] = useState(false);
-
-  // Google Maps API Key from environment variable
-  const apiKey =
-    import.meta.env.VITE_GOOGLE_MAPS_API_KEY ||
-    (typeof window !== 'undefined' && (window as unknown as { GOOGLE_MAPS_API_KEY?: string }).GOOGLE_MAPS_API_KEY) ||
-    '';
-
-  // Listen to gmp-quota-exceeded custom event
-  useEffect(() => {
-    const handleQuotaExceeded = () => {
-      setQuotaExceeded(true);
-    };
-
-    window.addEventListener('gmp-quota-exceeded', handleQuotaExceeded);
-    return () => {
-      window.removeEventListener('gmp-quota-exceeded', handleQuotaExceeded);
-    };
-  }, []);
-
   // Time in Argentina (GMT-3) clock display
   const [argTime, setArgTime] = useState<string>('');
   useEffect(() => {
@@ -170,23 +149,6 @@ export default function App() {
 
   return (
     <div className="relative w-screen h-screen flex flex-col bg-slate-950 text-slate-100 overflow-hidden font-sans">
-      {/* Client-Side Quota Defense Banner (Case A from Google Maps Platform guidelines) */}
-      {quotaExceeded && (
-        <div className="bg-amber-50 border-b border-amber-200 text-amber-900 px-4 py-2.5 text-xs md:text-sm text-center sticky top-0 z-50 shadow-sm">
-          <span>
-            Google Maps Platform quota reached. If you are the app owner, visit{' '}
-            <a
-              href="https://developers.google.com/maps/ai/ai-studio?utm_campaign=gmp_mcp_codeassist_v1_aistudio#quota_exceeded_errors"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="underline font-semibold text-amber-950 hover:text-amber-800"
-            >
-              maps developer site
-            </a>{' '}
-            for instructions to update your account.
-          </span>
-        </div>
-      )}
 
       {/* Main Top Navbar */}
       <header className="h-14 bg-slate-950/90 backdrop-blur-md border-b border-slate-800 px-3 sm:px-4 flex items-center justify-between shrink-0 z-40">
@@ -339,9 +301,8 @@ export default function App() {
           </button>
         </div>
 
-        {/* Google Maps 3D View */}
+        {/* High-Resolution Free Satellite Map View */}
         <GoogleMapView
-          apiKey={apiKey}
           landmarks={landmarks}
           selectedLandmark={selectedLandmark}
           onSelectLandmark={setSelectedLandmark}

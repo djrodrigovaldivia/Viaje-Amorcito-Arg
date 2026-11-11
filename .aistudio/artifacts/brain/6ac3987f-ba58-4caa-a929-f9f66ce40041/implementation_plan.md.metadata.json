@@ -1,0 +1,6 @@
+{
+  "summary":  "Plan de reemplazo del motor de mapas a un sistema 100% libre, gratuito y sin claves de API ni tarjetas de crédito, utilizando satélite real de alta resolución (Esri World Imagery) y OpenStreetMap con vista aérea, marcadores interactivos para los 12 monumentos de Argentina, ruta de vuelo geodésica y GPS en vivo para María Ignacia.",
+  "updatedAt":  "2026-11-11T03:53:57.331269705Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}

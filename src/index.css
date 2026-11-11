@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "leaflet/dist/leaflet.css";
 
 @layer base {
   body {
@@ -36,3 +37,74 @@
   animation: pulse-ring 2.5s cubic-bezier(0.24, 0, 0.38, 1) infinite;
 }
 
+/* Custom Leaflet Dark & Glassmorphism Theme Overrides */
+.leaflet-container {
+  background-color: #020617 !important;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif !important;
+}
+
+.leaflet-div-icon {
+  background: transparent !important;
+  border: none !important;
+}
+
+.leaflet-popup-content-wrapper {
+  background: rgba(15, 23, 42, 0.96) !important;
+  backdrop-filter: blur(12px) !important;
+  color: #f8fafc !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+  border-radius: 1rem !important;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.7), 0 8px 10px -6px rgba(0, 0, 0, 0.5) !important;
+  padding: 0 !important;
+}
+
+.leaflet-popup-content {
+  margin: 0 !important;
+  line-height: 1.4 !important;
+}
+
+.leaflet-popup-tip {
+  background: rgba(15, 23, 42, 0.96) !important;
+  border: 1px solid rgba(56, 189, 248, 0.35) !important;
+}
+
+.leaflet-popup-close-button {
+  color: #94a3b8 !important;
+  font-size: 18px !important;
+  padding: 6px 8px 0 0 !important;
+}
+
+.leaflet-popup-close-button:hover {
+  color: #ffffff !important;
+}
+
+.leaflet-control-attribution {
+  background: rgba(2, 6, 23, 0.75) !important;
+  color: #64748b !important;
+  font-size: 9px !important;
+  backdrop-filter: blur(4px);
+  border-top-left-radius: 8px;
+  padding: 2px 6px !important;
+}
+
+.leaflet-control-attribution a {
+  color: #38bdf8 !important;
+}
+
+/* 3D Perspective Tilt Simulation for Map Container */
+.map-3d-perspective-wrapper {
+  perspective: 1400px;
+  overflow: hidden;
+}
+
+.map-3d-tilted {
+  transform: rotateX(22deg) scale(1.12);
+  transform-origin: center 60%;
+  transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.map-3d-flat {
+  transform: rotateX(0deg) scale(1);
+  transform-origin: center center;
+  transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+}
