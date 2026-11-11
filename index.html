@@ -2,23 +2,50 @@
 <html lang="es">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Argentina 3D: Tour Interactivo de Monumentos y Maravillas</title>
-    <meta name="description" content="Explora los monumentos y maravillas naturales más icónicos de Argentina en 3D con Google Maps, vistas aéreas orbitales, modelos 3D y audioguía en español." />
-    <meta property="og:title" content="Argentina 3D: Tour Interactivo de Monumentos y Maravillas" />
-    <meta property="og:description" content="Explora los monumentos y maravillas naturales más icónicos de Argentina en 3D con Google Maps, vistas aéreas orbitales, modelos 3D y audioguía en español." />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <title>Argentina 3D: Guía para mi Amorcito 💕</title>
+    <meta name="description" content="Explora Argentina con mapa satelital y de calles 100% libre, guía de voz chilena y modo offline de ultra-ahorro de batería para mi Amorcito." />
+    <meta property="og:title" content="Argentina 3D: Guía para mi Amorcito 💕" />
+    <meta property="og:description" content="Explora Argentina con mapa satelital y de calles 100% libre, guía de voz chilena y modo offline de ultra-ahorro de batería para mi Amorcito." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="theme-color" content="#0284c7" />
+    <meta name="theme-color" content="#020617" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Argentina 3D" />
+    <meta name="apple-mobile-web-app-title" content="Amorcito 🇦🇷" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <script>
+      // Auto-purge any stale Service Worker or CARTO tile cache so Esri Street & Satellite Maps load cleanly
+      (function () {
+        try {
+          var MIGRATION_KEY = 'arg3d_esri_streets_v4_clean';
+          if (!localStorage.getItem(MIGRATION_KEY)) {
+            localStorage.setItem(MIGRATION_KEY, 'true');
+            if ('serviceWorker' in navigator) {
+              navigator.serviceWorker.getRegistrations().then(function (regs) {
+                var hadSw = regs.length > 0;
+                Promise.all(regs.map(function (r) { return r.unregister(); })).then(function () {
+                  if ('caches' in window) {
+                    caches.keys().then(function (keys) {
+                      Promise.all(keys.map(function (k) { return caches.delete(k); })).then(function () {
+                        if (hadSw) window.location.reload();
+                      });
+                    });
+                  } else if (hadSw) {
+                    window.location.reload();
+                  }
+                });
+              });
+            }
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body class="bg-slate-950 text-slate-100 antialiased overflow-hidden select-none">
     <div id="root"></div>

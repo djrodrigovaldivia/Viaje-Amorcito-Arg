@@ -1,6 +1,6 @@
 {
-  "summary":  "Plan de reemplazo del motor de mapas a un sistema 100% libre, gratuito y sin claves de API ni tarjetas de crédito, utilizando satélite real de alta resolución (Esri World Imagery) y OpenStreetMap con vista aérea, marcadores interactivos para los 12 monumentos de Argentina, ruta de vuelo geodésica y GPS en vivo para María Ignacia.",
-  "updatedAt":  "2026-11-11T03:53:57.331269705Z",
+  "summary":  "Plan actualizado incluyendo el 'Estudio de Voz Real de Rodrigo' (para grabar o subir su propia voz real en el saludo de bienvenida, las 6 cartitas de amor y frases cariñosas que suenan antes de las respuestas de la IA, guardadas 100% offline en el iPhone) + Voz Masculina Chilena calibrable al timbre de Rodrigo para respuestas dinámicas + Mapa de Calles sin clave + Modo Esencial OLED iPhone.",
+  "updatedAt":  "2026-11-11T04:36:57.348258007Z",
   "requestFeedback":  true,
   "userFacing":  true
 }

@@ -44,6 +44,9 @@ export default defineConfig(() => {
           ],
         },
         workbox: {
+          cleanupOutdatedCaches: true,
+          skipWaiting: true,
+          clientsClaim: true,
           maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
           globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
           runtimeCaching: [
@@ -79,24 +82,10 @@ export default defineConfig(() => {
               urlPattern: /^https:\/\/server\.arcgisonline\.com\/ArcGIS\/rest\/services\/.*/i,
               handler: 'CacheFirst',
               options: {
-                cacheName: 'esri-satellite-tiles-cache',
+                cacheName: 'esri-all-maps-tiles-cache-v4',
                 expiration: {
-                  maxEntries: 600,
-                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days offline satellite cache
-                },
-                cacheableResponse: {
-                  statuses: [0, 200],
-                },
-              },
-            },
-            {
-              urlPattern: /^https:\/\/.*\.basemaps\.cartocdn\.com\/.*/i,
-              handler: 'CacheFirst',
-              options: {
-                cacheName: 'carto-tiles-cache',
-                expiration: {
-                  maxEntries: 400,
-                  maxAgeSeconds: 60 * 60 * 24 * 30,
+                  maxEntries: 1200,
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days offline map cache (Satélite, Calles, Híbrido y Relieve)
                 },
                 cacheableResponse: {
                   statuses: [0, 200],
@@ -120,8 +109,7 @@ export default defineConfig(() => {
           ],
         },
         devOptions: {
-          enabled: true,
-          type: 'module',
+          enabled: false,
         },
       }),
     ],

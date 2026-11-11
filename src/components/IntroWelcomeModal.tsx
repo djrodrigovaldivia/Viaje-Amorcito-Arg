@@ -1,20 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
+  speakAsRodrigoOrChileanMaleAI,
+  stopAllVoicePlayback,
+  unlockIOSAudio,
+  getRodrigoRecording,
+} from '../services/voiceService';
+import {
   Heart,
   Play,
   Pause,
-  Volume2,
-  VolumeX,
   X,
   Sparkles,
   MapPin,
   Calendar,
   WifiOff,
-  Smartphone,
   ArrowRight,
-  Check,
-  MessageCircle,
   Camera,
+  Mic,
 } from 'lucide-react';
 
 interface IntroWelcomeModalProps {
@@ -23,6 +25,7 @@ interface IntroWelcomeModalProps {
   onOpenSchedule: () => void;
   onOpenAI: () => void;
   onRequestLocation: () => void;
+  onOpenVoiceStudio?: () => void;
 }
 
 export const IntroWelcomeModal: React.FC<IntroWelcomeModalProps> = ({
@@ -31,6 +34,7 @@ export const IntroWelcomeModal: React.FC<IntroWelcomeModalProps> = ({
   onOpenSchedule,
   onOpenAI,
   onRequestLocation,
+  onOpenVoiceStudio,
 }) => {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [currentStep, setCurrentStep] = useState<number>(0);
@@ -38,60 +42,37 @@ export const IntroWelcomeModal: React.FC<IntroWelcomeModalProps> = ({
   const progressTimerRef = useRef<number | null>(null);
 
   const introText =
-    '¡Hola mi amorcito María Ignacia! 💕 Te doy la bienvenida a tu guía interactiva de Argentina en 3D. Creé esta página con todo mi amor pensando en cada detalle de tu viaje. Acá vas a poder organizar tu schedule con los días que te quedan, consultar horarios de apertura de los monumentos, ver dónde estás con tu GPS en el mapa, y preguntarle cualquier duda a tu Asistente IA. Y lo mejor de todo: podés usarla tranquila sin gastar internet en la calle porque funciona en modo offline cuando no tengas Wi-Fi. ¡Disfrutá mucho cada momento en Argentina mi vida, te amo!';
+    '¡Hola mi amorcito lindo! 💕 Te doy la bienvenida a tu guía interactiva de Argentina. Hice esta aplicación con todo mi amor pensando en cuidarte en cada detalle de tu viaje. Aquí puedes ver tu itinerario día por día, mirar qué abrigo ponerte según el clima, ver dónde estás parada con el GPS de tu iPhone y hablarme con el micrófono sin tener que tipear. Y lo más bacán: funciona 100% sin internet cuando salgas del hotel y gasta el mínimo de batería. ¡Disfruta caleta cada momento en Argentina mi amorcito, te amo con todo mi corazón!';
+
+  const hasRealIntroVoice = !!getRodrigoRecording('intro');
 
   const startVoice = () => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(introText);
-    utterance.lang = 'es-AR';
-    utterance.rate = 0.93;
-    utterance.pitch = 1.05;
-
-    // Pick Spanish voice
-    const voices = window.speechSynthesis.getVoices();
-    const esVoice =
-      voices.find((v) => v.lang.includes('es-CL')) || // Chilean accent if available
-      voices.find((v) => v.lang.includes('es-AR')) ||
-      voices.find((v) => v.lang.includes('es-419')) ||
-      voices.find((v) => v.lang.startsWith('es'));
-
-    if (esVoice) utterance.voice = esVoice;
-
+    unlockIOSAudio();
     setAudioProgress(0);
     const startTime = Date.now();
-    const estDuration = 22000; // estimated 22s
+    const estDuration = 21000;
 
     if (progressTimerRef.current) clearInterval(progressTimerRef.current);
     progressTimerRef.current = window.setInterval(() => {
       const elapsed = Date.now() - startTime;
       const pct = Math.min(100, Math.round((elapsed / estDuration) * 100));
       setAudioProgress(pct);
-    }, 200);
+    }, 250);
 
-    utterance.onstart = () => {
-      setIsPlayingAudio(true);
-    };
-
-    utterance.onend = () => {
-      setIsPlayingAudio(false);
-      setAudioProgress(100);
-      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-    };
-
-    utterance.onerror = () => {
-      setIsPlayingAudio(false);
-      if (progressTimerRef.current) clearInterval(progressTimerRef.current);
-    };
-
-    window.speechSynthesis.speak(utterance);
+    speakAsRodrigoOrChileanMaleAI({
+      text: introText,
+      slotId: 'intro',
+      onStart: () => setIsPlayingAudio(true),
+      onEnd: () => {
+        setIsPlayingAudio(false);
+        setAudioProgress(100);
+        if (progressTimerRef.current) clearInterval(progressTimerRef.current);
+      },
+    });
   };
 
   const stopVoice = () => {
-    if (typeof window !== 'undefined' && window.speechSynthesis) {
-      window.speechSynthesis.cancel();
-    }
+    stopAllVoicePlayback();
     setIsPlayingAudio(false);
     if (progressTimerRef.current) clearInterval(progressTimerRef.current);
   };
@@ -115,54 +96,54 @@ export const IntroWelcomeModal: React.FC<IntroWelcomeModalProps> = ({
 
   const steps = [
     {
-      title: '1. Tu Itinerario y Schedule de Días',
-      icon: <Calendar className="w-5 h-5 text-pink-400" />,
-      desc: 'En el botón "Mi Itinerario" tenés organizados tus días en Argentina. Podés ver tus actividades hora a hora, marcar las que ya hiciste y agregar nuevas cosas que quieras hacer.',
-      actionText: 'Ver Itinerario',
-      onAction: onOpenSchedule,
-    },
-    {
-      title: '2. Clima & Tu Asistente IA',
+      title: '1. Háblame con tu Voz (Sin Tipear en tu iPhone)',
       icon: <Sparkles className="w-5 h-5 text-sky-400" />,
-      desc: 'En "Clima" y "Guía IA" podés ver el pronóstico de cada ciudad, qué ropa ponerte según el frío o lluvia, horarios de apertura y dónde comer las mejores empanadas o helados.',
+      desc: 'Toca el botón de micrófono en "Guía IA" o en el "Modo Esencial". Espero 1.4 segunditos cuando termines de hablar para no interrumpirte y te respondo con voz de hombre chileno.',
       actionText: 'Hablar con la IA',
       onAction: onOpenAI,
     },
     {
-      title: '3. Tu Diario de Viaje (Fotos & Notas)',
-      icon: <Camera className="w-5 h-5 text-pink-400" />,
-      desc: 'Podés sacar fotos con la cámara de tu celular de cada lugar que visites y guardar anécdotas vinculadas a tus días de viaje. ¡Todo se guarda seguro en tu teléfono sin internet!',
+      title: '2. Tu Itinerario y Clima Día a Día',
+      icon: <Calendar className="w-5 h-5 text-pink-400" />,
+      desc: 'En "Itinerario" y "Clima" tienes tus paseos hora por hora y qué abrigo o ropa te conviene ponerte según la temperatura.',
       actionText: 'Ver Itinerario',
       onAction: onOpenSchedule,
     },
     {
-      title: '4. Tu Ubicación en el Mapa 3D',
+      title: '3. Tu Diario de Viaje (Cámara & Fotos Offline)',
+      icon: <Camera className="w-5 h-5 text-pink-400" />,
+      desc: 'Saca fotos con tu iPhone y escribe notitas de cada lugar. Se guardan comprimidas en la memoria de tu teléfono sin usar internet.',
+      actionText: 'Ver Itinerario',
+      onAction: onOpenSchedule,
+    },
+    {
+      title: '4. ¿Dónde Estoy? (GPS de Pulso Único)',
       icon: <MapPin className="w-5 h-5 text-emerald-400" />,
-      desc: 'Cuando estés en la calle o en tu hotel, tocá "📍 ¿Dónde estoy?". La app usará tu GPS para mostrarte en el mapa y decirte qué monumentos y atractivos tenés cerca.',
+      desc: 'Toca "📍 ¿Dónde estoy?" para ubicarte en el mapa de calles o satélite en 1 segundo y apagar el GPS al tiro para cuidar tu batería.',
       actionText: 'Probar Ubicación',
       onAction: onRequestLocation,
     },
     {
-      title: '5. Funciona 100% Sin Internet (Offline)',
+      title: '5. 100% Sin Internet y Ultra-Ahorro de Batería',
       icon: <WifiOff className="w-5 h-5 text-amber-400" />,
-      desc: '¡Tranquila si no tenés datos móviles! Todos los monumentos, fotos, clima regional, modelos 3D y tu itinerario quedan guardados en tu teléfono para que no dependas del Wi-Fi en la calle.',
+      desc: 'Activa el botón "✨ Modo Simple" arriba cuando camines en la calle para ahorrar hasta un 60% de batería en tu iPhone.',
       actionText: 'Entendido, ¡gracias!',
       onAction: onClose,
     },
   ];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-xl max-h-[92vh] flex flex-col bg-slate-900 border border-pink-500/30 rounded-3xl shadow-2xl overflow-hidden text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/90 animate-in fade-in duration-150">
+      <div className="relative w-full max-w-xl max-h-[92dvh] flex flex-col bg-slate-950 border border-pink-500/30 rounded-3xl shadow-2xl overflow-hidden text-slate-100">
         {/* Top Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-gradient-to-r from-pink-950/40 via-purple-950/40 to-slate-950/60 shrink-0">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950 shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-600 flex items-center justify-center shadow-lg shadow-pink-500/20 text-white">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-500 to-rose-600 flex items-center justify-center shadow-lg text-white">
               <Heart className="w-5 h-5 fill-current" />
             </div>
             <div>
               <div className="flex items-center gap-1.5 text-xs font-semibold text-pink-300">
-                <span>Para María Ignacia</span>
+                <span>Para mi Amorcito</span>
                 <Heart className="w-3 h-3 fill-current text-pink-400" />
               </div>
               <h3 className="text-base sm:text-lg font-bold text-white tracking-tight">
@@ -185,10 +166,25 @@ export const IntroWelcomeModal: React.FC<IntroWelcomeModalProps> = ({
           <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-br from-slate-950 to-slate-900 border border-pink-500/30 shadow-xl space-y-3">
             <div className="flex items-center justify-between text-xs">
               <div className="flex items-center gap-2">
-                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400 animate-pulse" />
-                <span className="font-bold text-white">Audio Introductorio de Rodrigo</span>
+                <span className="w-2.5 h-2.5 rounded-full bg-emerald-400" />
+                <span className="font-bold text-white">
+                  {hasRealIntroVoice
+                    ? '🎙️ Audio con la Voz Real de Rodrigo'
+                    : 'Audio de Rodrigo (Voz de Hombre Chileno)'}
+                </span>
               </div>
-              <span className="text-slate-400 text-[11px] font-mono">0:22</span>
+              {onOpenVoiceStudio && (
+                <button
+                  onClick={() => {
+                    onClose();
+                    onOpenVoiceStudio();
+                  }}
+                  className="flex items-center gap-1 text-[11px] font-bold text-sky-400 hover:underline"
+                >
+                  <Mic className="w-3 h-3" />
+                  <span>{hasRealIntroVoice ? 'Cambiar grabación' : 'Grabar con mi voz'}</span>
+                </button>
+              )}
             </div>
 
             {/* Audio Waveform & Play/Pause bar */}
@@ -212,10 +208,10 @@ export const IntroWelcomeModal: React.FC<IntroWelcomeModalProps> = ({
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between text-[11px] text-slate-300 font-medium mb-1.5">
                   <span className="truncate">
-                    {isPlayingAudio ? '🔊 Reproduciendo voz...' : '▶️ Toca para escuchar el mensaje'}
+                    {isPlayingAudio ? '🔊 Escuchando a Rodrigo...' : '▶️ Toca para escuchar a Rodrigo'}
                   </span>
                   <span className="text-pink-400 font-mono text-[10px]">
-                    {isPlayingAudio ? `${audioProgress}%` : 'Voz en español'}
+                    {isPlayingAudio ? `${audioProgress}%` : '🇨🇱 Para mi Amorcito'}
                   </span>
                 </div>
 
@@ -229,7 +225,7 @@ export const IntroWelcomeModal: React.FC<IntroWelcomeModalProps> = ({
                     <div
                       key={i}
                       className={`flex-1 rounded-full transition-all duration-300 ${
-                        isPlayingAudio ? 'bg-pink-400 animate-pulse' : 'bg-slate-600'
+                        isPlayingAudio ? 'bg-pink-400' : 'bg-slate-600'
                       }`}
                       style={{ height: `${h}%` }}
                     />

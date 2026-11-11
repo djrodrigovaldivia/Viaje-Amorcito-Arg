@@ -73,40 +73,25 @@ export const TourControls: React.FC<TourControlsProps> = ({
     return () => clearInterval(timer);
   }, [isPlayingAutoTour, currentIndex, landmarks, onSelectLandmark, tourSpeed]);
 
-  // Speech Synthesis Audioguide Handler
+  // Speech Synthesis Audioguide Handler (Male Chilean Voice)
   const speakNarration = (text: string) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-
-    window.speechSynthesis.cancel();
-
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'es-AR'; // Argentine Spanish
-    utterance.rate = 0.95;
-    utterance.pitch = 1.0;
-
-    // Pick a Spanish voice if available
-    const voices = window.speechSynthesis.getVoices();
-    const esVoice =
-      voices.find((v) => v.lang.includes('es-AR')) ||
-      voices.find((v) => v.lang.includes('es-419')) ||
-      voices.find((v) => v.lang.includes('es-ES')) ||
-      voices.find((v) => v.lang.startsWith('es'));
-
-    if (esVoice) utterance.voice = esVoice;
-
-    utterance.onstart = () => setIsSpeakingAudio(true);
-    utterance.onend = () => setIsSpeakingAudio(false);
-    utterance.onerror = () => setIsSpeakingAudio(false);
-
-    window.speechSynthesis.speak(utterance);
+    if (typeof window === 'undefined') return;
+    import('../services/voiceService').then(({ speakAsRodrigoOrChileanMaleAI, unlockIOSAudio }) => {
+      unlockIOSAudio();
+      speakAsRodrigoOrChileanMaleAI({
+        text: `Mira mi amorcito: ${text}`,
+        onStart: () => setIsSpeakingAudio(true),
+        onEnd: () => setIsSpeakingAudio(false),
+      });
+    });
   };
 
   const toggleSpeech = () => {
     if (isSpeakingAudio) {
-      if (typeof window !== 'undefined' && window.speechSynthesis) {
-        window.speechSynthesis.cancel();
-      }
-      setIsSpeakingAudio(false);
+      import('../services/voiceService').then(({ stopAllVoicePlayback }) => {
+        stopAllVoicePlayback();
+        setIsSpeakingAudio(false);
+      });
     } else {
       speakNarration(selectedLandmark.audioNarration);
     }

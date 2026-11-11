@@ -1,93 +1,64 @@
-# Motor de Mapa Satelital 100% Libre y Gratuito para Argentina 3D
+# Tu Voz Real de Rodrigo + Voz de Hombre Chileno ("Amorcito"), Optimización iPhone, Batería y 100% Offline
 
-Reemplazo total del motor de mapas para eliminar para siempre los avisos de Google Maps, las marcas de agua de desarrollo y cualquier requerimiento de tarjeta de crédito o claves de pago. Se implementará una solución basada en **imágenes satelitales reales de alta resolución (Esri World Imagery / ArcGIS)** combinada con soporte offline y capas híbridas de OpenStreetMap.
+Plan actualizado para que tu amorcito escuche **tu propia voz real grabada por ti** en los momentos más especiales (bienvenida, cartitas y saludos al hablar con el asistente), combinada con una **voz masculina chilena ajustable a tu timbre** para las respuestas dinámicas de la IA.
 
 ---
 
-## Decisiones del Usuario y Contexto Confirmado
+## 1. ¿Cómo Ponemos Tu Voz Real en la App? (Doble Sistema 100% Gratis y Offline)
 
 > [!IMPORTANT]
-> - **Estilo de mapa seleccionado:** Satélite real de alta resolución sin clave (imágenes satelitales nítidas del territorio argentino, glaciar, cataratas, montañas y ciudades).
-> - **Acceso:** 100% libre y gratuito. Sin necesidad de registrar tarjetas de crédito, cuentas de Google Cloud, tokens ni claves de API en Vercel. Funciona inmediatamente al abrir la web.
-
-- **Problema resuelto:** Desaparece el diálogo *"Esta página no puede cargar Google Maps correctamente"* y la marca de agua *"For development purposes only"*.
-- **Beneficiaria:** María Ignacia tendrá un mapa fluido, hermoso y confiable tanto en Vercel como en modo offline en su celular mientras viaja por Argentina.
-
----
-
-## 1. El Nuevo Motor de Mapas: Satélite de Alta Resolución Sin Clave
-
-Utilizaremos **Leaflet** con la capa oficial y abierta de **Esri World Imagery** (el estándar de la industria para satélite gratuito sin cuotas restrictivas):
-
-1. **Satélite Real de Alta Calidad (Esri World Imagery):**
-   - Fotografía aérea y satelital nítida de todo el planeta, con extraordinario detalle en Argentina (CABA, Iguazú, Perito Moreno, Bariloche, Ushuaia, Mendoza, etc.).
-   - Endpoint abierto: `https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}`.
-   - **Cero costo, cero configuración:** No requiere API key ni encabezados de autorización.
-2. **Capa Híbrida / Nombres y Fronteras (Esri Boundaries & Places):**
-   - Permite superponer los nombres de ciudades, rutas y provincias sobre el satélite.
-3. **Capa Alternativa Modo Callejero / Nocturno (OpenStreetMap & CartoDB Dark Matter):**
-   - Para cuando se desee explorar calles peatonales o ahorrar batería con un diseño oscuro elegante.
-
----
-
-## 2. Experiencia de Usuario & Características Interactivas
-
-El nuevo mapa mantendrá y mejorará todas las funciones interactivas que preparamos para María Ignacia:
-
-- **12 Marcadores con el Sol de Mayo:**
-  - Pins animados con burbujas de vidrio esmerilado (*glassmorphism*), elevación en metros sobre el nivel del mar y bandera argentina.
-  - Al pulsar un marcador: la cámara vuela suavemente (*flyTo*) al monumento, se despliega una ficha emergente con foto y botón directo al Gemelo Digital 3D (Three.js).
-- **Ruta Turística Aérea:**
-  - Línea continua brillante (*cyan glow*) que conecta todas las paradas del tour por Argentina.
-- **Ubicación GPS de María Ignacia (`📍 ¿Dónde estoy?`):**
-  - Pin especial con corazón palpitante y su nombre en el mapa, calculando la distancia en kilómetros al atractivo más cercano.
-- **Selector de Capas:**
-  - Botón en pantalla para alternar entre **Satélite Real**, **Híbrido con Nombres** y **Relieve Topográfico**.
-- **Controles de Zoom y Vista Panorámica:**
-  - Botones táctiles diseñados para pantallas móviles para acercar, alejar y centrar todo el país con un solo toque.
-
----
-
-## 3. Arquitectura del Sistema
+> **Transparencia técnica**: Clonar biométricamente una voz desde cero para leer textos infinitos suele requerir servicios de pago con tarjeta (como ElevenLabs Pro). Pero para que sea **100% gratis, sin claves de pago y funcione 100% Offline en su iPhone**, combinaremos **Tu Voz Real Grabada** + **Voz Masculina Chilena Calibrada a tu Timbre**:
 
 ```
-┌────────────────────────────────────────────────────────┐
-│            Nuevo Motor de Mapas Satelital              │
-│       (Leaflet + Esri World Imagery + CartoDB)         │
-└───────────────────────────┬────────────────────────────┘
-                            │
-       ┌────────────────────┼────────────────────┐
-       │                    │                    │
-┌──────▼──────┐      ┌──────▼──────┐      ┌──────▼──────┐
-│  Satélite   │      │  Marcadores │      │  GPS María  │
-│  HD Esri    │      │  12 Destinos│      │  Ignacia    │
-│  (Sin Key)  │      │  Animados   │      │  (En vivo)  │
-└──────┬──────┘      └──────┬──────┘      └──────┬──────┘
-       │                    │                    │
-       └────────────────────┼────────────────────┘
-                            │
-              ┌─────────────▼─────────────┐
-              │  Gemelos Digitales 3D     │
-              │  Diario de Viaje (Fotos)  │
-              │  Clima y Empaque          │
-              │  Itinerario Guardado      │
-              │  100% Funcional Offline   │
-              └───────────────────────────┘
+┌────────────────────────────────────────────────────────────────────────┐
+│           SISTEMA HÍBRIDO: TU VOZ REAL + IA MASCULINA CHILENA          │
+├────────────────────────────────────────────────────────────────────────┤
+│  1. Estudio "🎙️ Grabar Mi Voz Real (Modo Rodrigo)" integrado en la App │
+│     • Puedes grabar con tu micrófono (o subir audios de WhatsApp/MP3): │
+│       - Tu Audio de Bienvenida real.                                   │
+│       - Tus 6 Cartitas de Amor leídas con tu propia voz.               │
+│       - Tus Saludos Reales ("¡Hola mi amorcito lindo!", "Te amo...")   │
+│         que suenan con TU VOZ REAL cuando ella le habla a la IA.       │
+│     • Quedan guardados 100% Offline en la memoria del iPhone.          │
+│                                                                        │
+│  2. Calibrador de Timbre Masculino Chileno para Respuestas Dinámicas   │
+│     • Para cuando la IA le lee el clima o direcciones nuevas, puedes   │
+│       ajustar el tono (más grave o más joven) y la velocidad de la     │
+│       voz masculina chilena ("Puck" / "Charon" / voz masculina iOS)    │
+│       para que se parezca lo más posible a tu forma de hablar.         │
+└────────────────────────────────────────────────────────────────────────┘
 ```
+
+### Lo que podrás hacer con tu voz:
+1. **Grabar o Subir tus Audios Reales en 1 Clic**:
+   - Dentro del Centro Fácil y del Audio Introductorio tendrás un botón **"🎙️ Grabar con la voz de Rodrigo (o subir audio)"**.
+   - Cuando ella abra una cartita o toque el saludo de la Guía IA, escuchará **tu voz real de verdad** hablándole al oído en su iPhone, incluso sin internet en medio de la Patagonia.
+2. **Frases de Introducción con Tu Voz Real en el Chat IA**:
+   - Puedes dejar grabados saludos cortos con tu voz (*"Aquí estoy mi amorcito, mira..."*, *"Te cuento al tiro mi amorcito..."*). Cuando la IA le conteste tras la **pausa de 1.4 segundos**, primero puede sonar tu saludo real y luego la información del lugar con la voz masculina chilena.
 
 ---
 
-## 4. Plan de Implementación Técnica
+## 2. Optimización Nativa para su iPhone + Ultra-Ahorro de Batería
 
-1. **Instalación de Dependencias:**
-   - Instalar `leaflet` y `@types/leaflet`.
-2. **Nuevo Componente `FreeMapView.tsx` (Reemplazo de Google Maps):**
-   - Inicializar el visor de mapa sobre Argentina con soporte táctil ágil y animaciones fluidas.
-   - Cargar las teselas satelitales de Esri con caché del navegador.
-   - Proyectar los 12 monumentos, polilínea de vuelo y marcador de María Ignacia con marcadores HTML personalizados sin dependencias externas.
-3. **Actualización de `App.tsx`:**
-   - Desconectar la dependencia de la API Key de Google Maps.
-   - Montar el nuevo visor interactivo que funcionará de inmediato tanto en local como al desplegar en Vercel.
-4. **Verificación:**
-   - Compilación completa (`compile_applet`) y validación de tipos (`lint_applet`).
-   - Prueba del mapa en navegador para garantizar fluidez y ausencia de errores.
+1. **Modo Esencial OLED (`✨ Modo Simple` en 1 Toque)**:
+   - Pantalla negra OLED que ahorra hasta un 60% de batería en iPhone, apagando el mapa 3D y dejando un **Botón Gigante de Micrófono** para hablar y las 6 tarjetas esenciales (*Itinerario de Hoy, Clima y Abrigo, Calculadora CLP/ARS + Propina 10%, Cámara Diario, GPS y Cartitas con Tu Voz Real / SOS*).
+2. **Especial para iPhone (iOS Safari / PWA)**:
+   - Pantalla completa `100dvh` con respeto a la Isla Dinámica (Notch) y barra inferior de iPhone.
+   - Desbloqueo automático de audio en iOS para que la respuesta hablada suene siempre tras la pausa de **1.4 segundos**.
+   - **0% consumo de batería con el iPhone bloqueado** (`visibilitychange`) y **GPS de pulso único** (toma la ubicación en 1 segundo y apaga la antena).
+
+---
+
+## 3. Modo 100% Offline + Vista de "Calles" Sin Clave
+
+1. **100% Offline en Toda Argentina**:
+   - Tus grabaciones de voz real, sus fotos del Diario (`IndexedDB`), la Guía IA en español chileno diciéndole **"Amorcito"**, el Clima, la Calculadora CLP/ARS y el Itinerario funcionan sin internet.
+   - Pre-guardado automático de mapas y fotos al conectarse al Wi-Fi del hotel.
+2. **Vista de "Calles" 100% Libre (Sin *"API KEY REQUIRED"*)**:
+   - Se reemplaza `cartocdn.com` por **Esri World Street Map**, 100% gratis, sin registro y sin marcas de agua.
+
+---
+
+## 4. Verificación Final
+- Compilación y validación con `compile_applet` y `lint_applet`.
+- Verificación del grabador/reproductor de **Tu Voz Real**, voz masculina chilena con trato **"Amorcito"**, pausa de 1.4s, Modo Esencial OLED para iPhone y vista de Calles sin claves.

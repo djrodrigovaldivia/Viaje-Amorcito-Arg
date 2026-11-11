@@ -25,23 +25,84 @@ const ai = new GoogleGenAI({
   },
 });
 
-// System instruction for María Ignacia's personal Argentine guide
+// System instruction for Amorcito's personal travel guide in Chilean Spanish
 const SYSTEM_INSTRUCTION = `
-Sos el Asistente Guía de Viaje Inteligente y Personal para María Ignacia, creado con mucho amor por su pareja Rodrigo para acompañarla en su aventura por la República Argentina.
-Tu misión es ser su compañero de viaje ideal: cálido, protector, experto en turismo argentino y sumamente práctico.
-
-Puntos clave sobre María Ignacia y su viaje:
-- Ella está de viaje en Argentina y solo tiene conexión a internet mediante Wi-Fi (no tiene roaming/datos móviles en la calle).
-- Puede consultarte sobre su schedule/itinerario, horarios de apertura y cierre de parques y monumentos, distancias, mejores horas de luz para fotos, dónde comer (empanadas, medialunas, helados artesanales, alfajores, asado), cómo trasladarse (tarjeta SUBE para colectivos y subte en CABA, taxis/remises confiables, vuelos) y precauciones útiles de viaje.
-- Si ella te comparte su ubicación geográfica (latitud y longitud), indícale exactamente en qué ciudad/zona se encuentra, a qué monumentos cercanos está y qué puede hacer ahí mismo.
-- Sé cariñoso, respetuoso y entusiasta. Recordale siempre que Rodrigo pensó esta aplicación para que ella disfrute al máximo cada instante de su estadía en Argentina sin estrés.
-- Respuestas estructuradas con viñetas, horarios claros y consejos concisos para que pueda leerlos fácilmente en su teléfono móvil.
+Eres el compañero y guía de viaje personal en Argentina creado con todo el amor del mundo por Rodrigo para su pareja.
+REGLAS ESTRICTAS DE IDENTIDAD, IDIOMA Y TRATO:
+1. NUNCA la llames "María Ignacia". Llámala SIEMPRE "Amorcito" (o "mi amorcito", "amorcito lindo", "mi amorcito preciosa").
+2. Habla SIEMPRE en ESPAÑOL DE CHILE (español chileno cálido, dulce, protector y cercano, con voz de hombre chileno enamorado).
+3. Usa modismos chilenos suaves, naturales y cariñosos cuando corresponda: "po", "bacán", "al tiro", "te tinca", "caleta", "piola", "brigido" (con moderación y mucha ternura).
+4. PROHIBIDO usar español de España ("vosotros", "coged", "aparcad", "vale", "tío") y evita el voseo argentino ("podés", "tenés") para hablarle; háblale de "tú" al estilo chileno ("puedes", "tienes", "¿cómo estás mi amorcito?", "¿qué te tinca hacer hoy po?").
+5. Recuerda que ella usa un iPhone y en la calle en Argentina puede estar sin datos móviles (solo Wi-Fi en el hotel). Dales consejos claros, directos, con horarios, qué ropa/abrigo ponerse, cómo moverse en Subte/Colectivo con la tarjeta SUBE o Cabify/Uber, dónde comer rico y cuánto dejar de propina (10%).
+6. Si te comparte su ubicación GPS (latitud y longitud), dile al tiro en qué barrio o lugar está, qué tiene cerca y cómo cuidarse.
+7. ELLA AMA LA MODA, LA ROPA USADA / AMERICANA ("Ferias Americanas" / "Moda Circular"), LAS TENDENCIAS TIPO ZARA ACCESIBLES (nada caro) Y LOS MALL CHINOS. Además ella tiene su propia tienda de ropa en Instagram llamada @maria_la_vintage (estética europea/Zara: blazers sastreros oversize, chaquetas de gamuza y cuero, faldas midi satinadas/ecocuero/lentejuelas, tops de encaje, corsets, chalecos tejidos, pantalones wide-leg). Recomiéndale siempre con direcciones exactas: Juan Perez Vintage (Marcelo T. de Alvear 1355), Galpón de Ropa (Cabrera 4667), Cocoliche (Av. Santa Fe 2450), Outlets de Calle Aguirre 600-900 en Villa Crespo (Complot, Las Pepas), Zara Special Prices + tiendas Ver y Yagmour en Av. Santa Fe, el "Zara Mayorista" en calles Argerich y Helguera (Av. Avellaneda, Flores), Urban Luxury (Av. Cabildo 2040) combinado con los bazares del Barrio Chino de Belgrano (calle Arribeños: Casa China, Asia Oriental) y los Mall Chinos de Once (Av. Pueyrredón y Pasteur).
+8. Respuestas cálidas, concisas y fáciles de escuchar por voz o leer rápido en la pantalla de su iPhone.
 `;
+
+// API Endpoint: Text-to-Speech in Male Chilean Voice (Gemini 3.8 Flash Lite TTS)
+app.post('/api/ai/tts', async (req, res) => {
+  try {
+    const { text, voiceName } = req.body;
+    if (!text || typeof text !== 'string') {
+      return res.status(400).json({ error: 'Texto requerido para síntesis de voz' });
+    }
+
+    if (!process.env.GEMINI_API_KEY) {
+      return res.status(503).json({ error: 'TTS offline fallback', offlineFallback: true });
+    }
+
+    const cleanText = text
+      .replace(/[*_#`~>]/g, '')
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1')
+      .slice(0, 900);
+
+    const selectedVoice = ['Puck', 'Charon', 'Fenrir'].includes(voiceName) ? voiceName : 'Puck';
+
+    const response = await ai.models.generateContent({
+      model: 'gemini-3.8-flash-lite-tts',
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            {
+              text: cleanText,
+              speechMetadata: {
+                style:
+                  'Hombre chileno joven, voz masculina cálida, dulce y cariñosa, con acento de Chile natural hablándole con amor a su pareja Amorcito',
+              },
+            },
+          ],
+        },
+      ],
+      config: {
+        responseModalities: ['AUDIO'],
+        speechConfig: {
+          voiceConfig: {
+            prebuiltVoiceConfig: { voiceName: selectedVoice },
+          },
+        },
+      },
+    });
+
+    const base64Audio = response.candidates?.[0]?.content?.parts?.[0]?.inlineData?.data;
+    if (!base64Audio) {
+      return res.status(500).json({ error: 'No se recibió audio del modelo', offlineFallback: true });
+    }
+
+    return res.json({
+      audioBase64: base64Audio,
+      mimeType: 'audio/wav',
+    });
+  } catch (error: unknown) {
+    console.error('Error in /api/ai/tts:', error);
+    return res.status(500).json({ error: 'Fallback a voz masculina local del iPhone', offlineFallback: true });
+  }
+});
 
 // API Endpoint: Chat with AI Guide
 app.post('/api/ai/chat', async (req, res) => {
   try {
-    const { message, itinerary, userLocation, chatHistory } = req.body;
+    const { message, itinerary, userLocation } = req.body;
 
     if (!process.env.GEMINI_API_KEY) {
       return res.status(503).json({
@@ -53,7 +114,7 @@ app.post('/api/ai/chat', async (req, res) => {
     // Compose rich contextual prompt
     let contextPrompt = '';
     if (itinerary && Array.isArray(itinerary) && itinerary.length > 0) {
-      contextPrompt += `\n[Itinerario actual de María Ignacia]:\n` +
+      contextPrompt += `\n[Itinerario actual de Amorcito]:\n` +
         itinerary.map((day: { dayNumber: number; title: string; activities: { time: string; text: string; done?: boolean }[] }) => {
           const actList = (day.activities || []).map(a => `  - ${a.time || 'Horario flexible'}: ${a.text} ${a.done ? '(Completado)' : ''}`).join('\n');
           return `Día ${day.dayNumber}: ${day.title}\n${actList}`;
@@ -61,10 +122,10 @@ app.post('/api/ai/chat', async (req, res) => {
     }
 
     if (userLocation && typeof userLocation.lat === 'number') {
-      contextPrompt += `\n\n[Ubicación GPS actual de María Ignacia]: Lat: ${userLocation.lat.toFixed(4)}, Lng: ${userLocation.lng.toFixed(4)}${userLocation.address ? ` (${userLocation.address})` : ''}`;
+      contextPrompt += `\n\n[Ubicación GPS actual de Amorcito]: Lat: ${userLocation.lat.toFixed(4)}, Lng: ${userLocation.lng.toFixed(4)}${userLocation.address ? ` (${userLocation.address})` : ''}`;
     }
 
-    const contents = `${contextPrompt}\n\nPregunta de María Ignacia: "${message || 'Hola, ¿qué me recomiendas para mi itinerario?'}"`;
+    const contents = `${contextPrompt}\n\nMensaje de Amorcito: "${message || 'Hola, ¿qué me recomiendas para mi itinerario hoy?'}"`;
 
     const response = await ai.models.generateContent({
       model: 'gemini-3.8-flash',
@@ -74,7 +135,7 @@ app.post('/api/ai/chat', async (req, res) => {
       },
     });
 
-    const replyText = response.text || '¡Hola María Ignacia! Estoy aquí para ayudarte con tu recorrido por Argentina.';
+    const replyText = response.text || '¡Hola mi amorcito lindo! Aquí estoy al tiro para ayudarte en tu viaje por Argentina.';
     return res.json({ reply: replyText });
   } catch (error: unknown) {
     console.error('Error calling Gemini API:', error);

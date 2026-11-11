@@ -1,6 +1,12 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { DaySchedule } from '../types/schedule';
 import { generateOfflineResponse } from '../utils/offlineAIEngine';
+import {
+  unlockIOSAudio,
+  speakAsRodrigoOrChileanMaleAI,
+  stopAllVoicePlayback,
+  getRodrigoRecording,
+} from '../services/voiceService';
 import {
   X,
   Send,
@@ -15,6 +21,9 @@ import {
   Clock,
   HelpCircle,
   RotateCcw,
+  Mic,
+  MicOff,
+  Radio,
 } from 'lucide-react';
 
 interface ChatMessage {
@@ -33,7 +42,13 @@ interface MariaAIAssistantModalProps {
   onRequestUserLocation: () => void;
   isOnline: boolean;
   onOpenHelp: () => void;
+  autoStartMic?: boolean;
+  onClearAutoStartMic?: () => void;
 }
+
+// Forum-researched optimal conversational turn-taking pause (1.4 seconds = 1400ms)
+// Prevents the AI from interrupting her while she takes a breath or finishes her thought.
+const CONVERSATIONAL_PAUSE_MS = 1400;
 
 export const MariaAIAssistantModal: React.FC<MariaAIAssistantModalProps> = ({
   isOpen,
@@ -43,12 +58,14 @@ export const MariaAIAssistantModal: React.FC<MariaAIAssistantModalProps> = ({
   onRequestUserLocation,
   isOnline,
   onOpenHelp,
+  autoStartMic,
+  onClearAutoStartMic,
 }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: 'welcome-1',
       sender: 'ai',
-      text: `¡Hola mi querida María Ignacia! 💕🇦🇷\n\nSoy tu asistente de viaje personal en Argentina, preparado con todo el amor por Rodrigo para cuidarte y guiarte en cada rincón.\n\nPodés preguntarme sobre tus horarios, qué hacer en tus días libres, dónde estás parada con tu GPS, o pedirme recomendaciones de comida, paseos y transporte. ¡Incluso si te quedas sin Wi-Fi en la calle sigo funcionando para vos!`,
+      text: `¡Hola mi amorcito lindo! 💕🇨🇱\n\nSoy tu guía personal en Argentina, hecho con todo el amor del mundo por Rodrigo para cuidarte y acompañarte a cada paso.\n\nToca el **botón del micrófono 🎙️** para hablarme con tu voz sin tener que tipear en tu iPhone (esperaré 1.4 segunditos cuando termines de hablar para que jamás nos pisemos al conversar), o toca cualquier botón rápido de abajo. ¡Funciono con Wi-Fi y también 100% sin internet en la calle po, mi amorcito!`,
       time: 'Ahora',
     },
   ]);
@@ -56,299 +73,497 @@ export const MariaAIAssistantModal: React.FC<MariaAIAssistantModalProps> = ({
   const [inputText, setInputText] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [speakingMsgId, setSpeakingMsgId] = useState<string | null>(null);
+  const [autoSpeakReplies, setAutoSpeakReplies] = useState(true);
 
+  // Voice Recognition & Conversational Pause States
+  const [isListening, setIsListening] = useState(false);
+  const [isWaitingPauseBuffer, setIsWaitingPauseBuffer] = useState(false);
+  const [liveTranscript, setLiveTranscript] = useState('');
+  const [voiceError, setVoiceError] = useState<string | null>(null);
+
+  const recognitionRef = useRef<any>(null);
+  const silenceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const replyDelayTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const transcriptAccumulatorRef = useRef<string>('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const clearVoiceTimers = () => {
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    if (replyDelayTimerRef.current) {
+      clearTimeout(replyDelayTimerRef.current);
+      replyDelayTimerRef.current = null;
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
       messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      // Stop recognition and audio when modal closes to save iPhone battery
+      clearVoiceTimers();
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (_) {}
+      }
+      setIsListening(false);
+      setIsWaitingPauseBuffer(false);
+      stopAllVoicePlayback();
+      setSpeakingMsgId(null);
     }
   }, [messages, isOpen]);
 
-  if (!isOpen) return null;
+  const speakReplyNaturally = useCallback(
+    (msgId: string, text: string, withConversationalDelay = false) => {
+      clearVoiceTimers();
+      // If triggered right after voice input, add a gentle 650ms pre-speech breath after the 1.4s silence detection
+      // so the transition from her speaking to his voice feels 100% human and unhurried.
+      const delay = withConversationalDelay ? 650 : 80;
+      replyDelayTimerRef.current = setTimeout(() => {
+        speakAsRodrigoOrChileanMaleAI({
+          text,
+          isAIResponse: true,
+          onStart: () => setSpeakingMsgId(msgId),
+          onEnd: () => setSpeakingMsgId(null),
+        });
+      }, delay);
+    },
+    []
+  );
 
-  const handleSendMessage = async (textToSend?: string) => {
-    const query = (textToSend || inputText).trim();
-    if (!query || isLoading) return;
+  const handleSendMessage = useCallback(
+    async (textToSend?: string, fromVoiceInput = false) => {
+      const query = (textToSend ?? inputText).trim();
+      if (!query || isLoading) return;
 
-    const userMsg: ChatMessage = {
-      id: `msg-${Date.now()}`,
-      sender: 'maria',
-      text: query,
-      time: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
-    };
+      unlockIOSAudio();
+      stopAllVoicePlayback();
+      setSpeakingMsgId(null);
 
-    setMessages((prev) => [...prev, userMsg]);
-    setInputText('');
-    setIsLoading(true);
+      const userMsg: ChatMessage = {
+        id: `msg-${Date.now()}`,
+        sender: 'maria',
+        text: query,
+        time: new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }),
+      };
 
-    // If browser is offline or user lacks internet, use offline engine immediately
-    if (!navigator.onLine) {
-      setTimeout(() => {
+      setMessages((prev) => [...prev, userMsg]);
+      setInputText('');
+      setLiveTranscript('');
+      transcriptAccumulatorRef.current = '';
+      setIsWaitingPauseBuffer(false);
+      setIsLoading(true);
+
+      const finishWithReply = (replyText: string, offlineFlag: boolean) => {
+        const replyId = `reply-${Date.now()}`;
+        setMessages((prev) => [
+          ...prev,
+          {
+            id: replyId,
+            sender: 'ai',
+            text: replyText,
+            time: new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit' }),
+            isOffline: offlineFlag,
+          },
+        ]);
+        setIsLoading(false);
+
+        if (autoSpeakReplies || fromVoiceInput) {
+          speakReplyNaturally(replyId, replyText, fromVoiceInput);
+        }
+      };
+
+      // Offline mode: wait 900ms so the response doesn't feel robotic/instantaneous and never collides with her voice
+      if (!navigator.onLine) {
+        setTimeout(() => {
+          const offlineReply = generateOfflineResponse({
+            message: query,
+            itinerary,
+            userLocation,
+          });
+          finishWithReply(offlineReply, true);
+        }, 900);
+        return;
+      }
+
+      try {
+        const startTime = Date.now();
+        const res = await fetch('/api/ai/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: query,
+            itinerary,
+            userLocation,
+          }),
+        });
+
+        if (!res.ok) {
+          throw new Error(`HTTP ${res.status}`);
+        }
+
+        const data = await res.json();
+        const reply =
+          data.reply || generateOfflineResponse({ message: query, itinerary, userLocation });
+
+        // Ensure at least 900ms of natural thinking pace so it never interrupts her
+        const elapsed = Date.now() - startTime;
+        const remainingWait = Math.max(0, 900 - elapsed);
+        setTimeout(() => {
+          finishWithReply(reply, false);
+        }, remainingWait);
+      } catch (_) {
         const offlineReply = generateOfflineResponse({
           message: query,
           itinerary,
           userLocation,
         });
+        finishWithReply(offlineReply, true);
+      }
+    },
+    [inputText, isLoading, itinerary, userLocation, autoSpeakReplies, speakReplyNaturally]
+  );
 
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `reply-${Date.now()}`,
-            sender: 'ai',
-            text: offlineReply,
-            time: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
-            isOffline: true,
-          },
-        ]);
-        setIsLoading(false);
-      }, 350);
+  // Start / Stop Microphone Speech Recognition with 1.4s Conversational Silence Buffer
+  const handleToggleMicrophone = useCallback(() => {
+    unlockIOSAudio();
+    stopAllVoicePlayback();
+    setSpeakingMsgId(null);
+    setVoiceError(null);
+
+    if (isListening || isWaitingPauseBuffer) {
+      clearVoiceTimers();
+      if (recognitionRef.current) {
+        try {
+          recognitionRef.current.stop();
+        } catch (_) {}
+      }
+      setIsListening(false);
+      setIsWaitingPauseBuffer(false);
+      const pendingText = (transcriptAccumulatorRef.current || liveTranscript).trim();
+      if (pendingText) {
+        handleSendMessage(pendingText, true);
+      }
       return;
     }
 
-    // Try calling server-side Gemini API
-    try {
-      const res = await fetch('/api/ai/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          message: query,
-          itinerary,
-          userLocation,
-        }),
-      });
+    const SpeechRec =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
 
-      if (!res.ok) {
-        throw new Error(`HTTP ${res.status}`);
-      }
-
-      const data = await res.json();
-      const reply = data.reply || generateOfflineResponse({ message: query, itinerary, userLocation });
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `reply-${Date.now()}`,
-          sender: 'ai',
-          text: reply,
-          time: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
-          isOffline: false,
-        },
-      ]);
-    } catch (err) {
-      console.warn('Network or AI API error, switching to Offline Smart Engine:', err);
-      // Fallback seamlessly to offline engine
-      const offlineReply = generateOfflineResponse({
-        message: query,
-        itinerary,
-        userLocation,
-      });
-
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `reply-${Date.now()}`,
-          sender: 'ai',
-          text: `${offlineReply}\n\n*(Nota: Respuesta procesada con la guía local de tu teléfono por falta de Wi-Fi)*`,
-          time: new Date().toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' }),
-          isOffline: true,
-        },
-      ]);
-    } finally {
-      setIsLoading(false);
+    if (!SpeechRec) {
+      setVoiceError(
+        'Mi amorcito, usa el micrófono del teclado de tu iPhone (abajo a la derecha) para dictarme tu mensaje 💕'
+      );
+      return;
     }
-  };
+
+    try {
+      const recognition = new SpeechRec();
+      recognitionRef.current = recognition;
+      recognition.lang = 'es-CL';
+      recognition.interimResults = true;
+      // On iOS Safari, continuous=false is more stable, while our 1.4s silence timer buffers the end of speech
+      recognition.continuous = false;
+      recognition.maxAlternatives = 1;
+
+      transcriptAccumulatorRef.current = '';
+      setLiveTranscript('');
+      setIsListening(true);
+      setIsWaitingPauseBuffer(false);
+
+      const scheduleConversationalSend = (currentText: string) => {
+        if (!currentText.trim()) return;
+        clearVoiceTimers();
+        setIsWaitingPauseBuffer(true);
+        silenceTimerRef.current = setTimeout(() => {
+          setIsListening(false);
+          setIsWaitingPauseBuffer(false);
+          try {
+            recognition.stop();
+          } catch (_) {}
+          handleSendMessage(currentText.trim(), true);
+        }, CONVERSATIONAL_PAUSE_MS);
+      };
+
+      recognition.onresult = (event: any) => {
+        let interim = '';
+        let finalStr = '';
+        for (let i = 0; i < event.results.length; i++) {
+          const res = event.results[i];
+          if (res.isFinal) {
+            finalStr += res[0].transcript + ' ';
+          } else {
+            interim += res[0].transcript;
+          }
+        }
+        const combined = (finalStr + interim).trim();
+        if (combined) {
+          transcriptAccumulatorRef.current = combined;
+          setLiveTranscript(combined);
+          setInputText(combined);
+          // Every time she speaks a word, reset the 1.4s conversational silence timer!
+          scheduleConversationalSend(combined);
+        }
+      };
+
+      recognition.onerror = (event: any) => {
+        if (event.error === 'no-speech') {
+          setIsListening(false);
+          setIsWaitingPauseBuffer(false);
+          return;
+        }
+        setIsListening(false);
+        setIsWaitingPauseBuffer(false);
+        setVoiceError(
+          'Permite el micrófono en Safari (o usa el micrófono del teclado de tu iPhone) para hablarme, mi amorcito 💕'
+        );
+      };
+
+      recognition.onend = () => {
+        setIsListening(false);
+        const captured = transcriptAccumulatorRef.current.trim();
+        if (captured && !silenceTimerRef.current) {
+          // Wait the full 1.4s conversational pause before sending so we never cut her off
+          setIsWaitingPauseBuffer(true);
+          silenceTimerRef.current = setTimeout(() => {
+            setIsWaitingPauseBuffer(false);
+            handleSendMessage(captured, true);
+          }, CONVERSATIONAL_PAUSE_MS);
+        }
+      };
+
+      recognition.start();
+    } catch (_) {
+      setIsListening(false);
+      setVoiceError('Toca el micrófono de tu teclado de iPhone para dictarme, mi amorcito 💕');
+    }
+  }, [isListening, isWaitingPauseBuffer, liveTranscript, handleSendMessage]);
+
+  // Trigger auto-start microphone when opened from Essential Mode giant voice button
+  useEffect(() => {
+    if (isOpen && autoStartMic) {
+      onClearAutoStartMic?.();
+      const t = setTimeout(() => {
+        handleToggleMicrophone();
+      }, 250);
+      return () => clearTimeout(t);
+    }
+  }, [isOpen, autoStartMic, onClearAutoStartMic, handleToggleMicrophone]);
+
+  if (!isOpen) return null;
 
   const handleSpeechToggle = (msgId: string, text: string) => {
-    if (typeof window === 'undefined' || !window.speechSynthesis) return;
-
+    unlockIOSAudio();
     if (speakingMsgId === msgId) {
-      window.speechSynthesis.cancel();
+      stopAllVoicePlayback();
       setSpeakingMsgId(null);
     } else {
-      window.speechSynthesis.cancel();
-      const utterance = new SpeechSynthesisUtterance(text.replace(/[*_#•]/g, ''));
-      utterance.lang = 'es-AR';
-      utterance.rate = 0.95;
-
-      utterance.onstart = () => setSpeakingMsgId(msgId);
-      utterance.onend = () => setSpeakingMsgId(null);
-      utterance.onerror = () => setSpeakingMsgId(null);
-
-      window.speechSynthesis.speak(utterance);
+      speakReplyNaturally(msgId, text, false);
     }
   };
 
+  const hasRodrigoGreeting = !!getRodrigoRecording('ai-greeting');
+
+  const quickChips = [
+    { label: '⛅ ¿Qué abrigo me pongo hoy?', query: '¿Qué clima hace y qué abrigo me pongo hoy?' },
+    { label: '📍 ¿Dónde estoy parada?', query: '¿Dónde estoy ahora y qué tengo cerca?' },
+    { label: '🗓️ ¿Qué me toca hoy?', query: '¿Cuál es mi itinerario y horarios de hoy?' },
+    { label: '🍦 ¿Dónde tomo once o helado?', query: '¿Dónde puedo tomar once o comer helados ricos?' },
+    { label: '🚇 ¿Cómo uso el Subte y la micro?', query: '¿Cómo funciona el Subte, los colectivos y el cambio de pesos?' },
+    { label: '💌 Extraño a Rodrigo', query: 'Extraño a Rodrigo' },
+  ];
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/85 backdrop-blur-md animate-in fade-in duration-200">
-      <div className="relative w-full max-w-2xl h-[88vh] flex flex-col bg-slate-900 border border-slate-700/80 rounded-3xl shadow-2xl overflow-hidden text-slate-100">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 sm:p-4 bg-black/90 animate-in fade-in duration-150">
+      <div className="relative w-full max-w-2xl h-[100dvh] sm:h-[88dvh] flex flex-col bg-slate-950 sm:border border-slate-800 sm:rounded-3xl shadow-2xl overflow-hidden text-slate-100 pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-slate-800 bg-slate-950/70 shrink-0">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3.5 border-b border-slate-800 bg-slate-950 shrink-0">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/20">
+              <div className="w-10 h-10 rounded-2xl bg-gradient-to-tr from-pink-600 to-indigo-600 flex items-center justify-center shadow-md">
                 <Sparkles className="w-5 h-5 text-white" />
               </div>
-              <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-pink-500 border-2 border-slate-900 flex items-center justify-center text-[8px] text-white">
+              <div className="absolute -bottom-1 -right-1 w-4 h-4 rounded-full bg-rose-500 border-2 border-slate-950 flex items-center justify-center text-[8px] text-white">
                 ❤️
               </div>
             </div>
 
             <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-base font-bold text-white tracking-tight flex items-center gap-1.5">
-                  <span>Guía IA de María Ignacia</span>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className="text-sm sm:text-base font-extrabold text-white tracking-tight">
+                  Guía para mi Amorcito 💕
                 </h3>
 
-                {/* Connectivity Badge */}
                 <span
-                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border ${
+                  className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${
                     isOnline
-                      ? 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30'
-                      : 'bg-amber-500/20 text-amber-300 border-amber-500/30'
+                      ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                      : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
                   }`}
                 >
                   {isOnline ? (
                     <>
                       <Wifi className="w-2.5 h-2.5" />
-                      <span>Wi-Fi Activo</span>
+                      <span>Wi-Fi</span>
                     </>
                   ) : (
                     <>
                       <WifiOff className="w-2.5 h-2.5" />
-                      <span>Modo Offline</span>
+                      <span>100% Offline</span>
                     </>
                   )}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400">
-                Creada por Rodrigo con amor • Respuestas online y offline
+              <p className="text-[11px] text-pink-300/90 font-medium">
+                {hasRodrigoGreeting
+                  ? '🎙️ Con la voz real de Rodrigo + Guía Chileno'
+                  : '🇨🇱 Voz de hombre chileno • Pausa natural 1.4s'}
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
+            {/* Auto-Speak Replies Toggle */}
             <button
-              onClick={onOpenHelp}
-              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-300 text-xs font-semibold border border-slate-700 transition-colors"
-              title="Ver guía de ayuda sobre cómo usar la app"
+              onClick={() => {
+                unlockIOSAudio();
+                const next = !autoSpeakReplies;
+                setAutoSpeakReplies(next);
+                if (!next) {
+                  stopAllVoicePlayback();
+                  setSpeakingMsgId(null);
+                }
+              }}
+              className={`flex items-center gap-1 px-2.5 py-1.5 rounded-xl border text-xs font-bold transition-colors ${
+                autoSpeakReplies
+                  ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300'
+                  : 'bg-slate-900 border-slate-800 text-slate-400'
+              }`}
+              title="Activar o desactivar que te hable en voz alta automáticamente"
             >
-              <HelpCircle className="w-3.5 h-3.5" />
-              <span className="hidden sm:inline">Ayuda</span>
+              {autoSpeakReplies ? (
+                <>
+                  <Volume2 className="w-3.5 h-3.5 text-emerald-400" />
+                  <span className="hidden sm:inline">Voz Activa</span>
+                </>
+              ) : (
+                <>
+                  <VolumeX className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">Mudo</span>
+                </>
+              )}
+            </button>
+
+            <button
+              onClick={onRequestUserLocation}
+              className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-pink-300 border border-pink-500/30 text-xs font-semibold transition-colors"
+              title="Actualizar mi ubicación GPS en 1 segundo"
+            >
+              <MapPin className="w-3.5 h-3.5 text-pink-400" />
+              <span className="hidden sm:inline">Mi GPS</span>
             </button>
 
             <button
               onClick={onClose}
-              className="p-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition-colors"
+              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-white transition-colors"
             >
               <X className="w-5 h-5" />
             </button>
           </div>
         </div>
 
-        {/* Quick Suggestion Pills */}
-        <div className="px-4 py-2 border-b border-slate-800/60 bg-slate-950/40 flex items-center gap-1.5 overflow-x-auto scrollbar-none shrink-0">
-          <button
-            onClick={() => handleSendMessage('¿Dónde estoy parada y qué monumentos tengo cerca?')}
-            className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-800/80 hover:bg-slate-700 text-[11px] font-medium text-sky-300 whitespace-nowrap transition-colors border border-slate-700"
-          >
-            <MapPin className="w-3 h-3 text-sky-400" />
-            <span>¿Dónde estoy?</span>
-          </button>
+        {/* Active Voice Listening / 1.4s Conversational Buffer Banner */}
+        {(isListening || isWaitingPauseBuffer) && (
+          <div className="px-4 py-3 bg-gradient-to-r from-pink-950/90 via-rose-950/90 to-indigo-950/90 border-b border-pink-500/40 flex items-center justify-between gap-3 shrink-0">
+            <div className="flex items-center gap-3 min-w-0">
+              <div className="w-9 h-9 rounded-full bg-pink-600 flex items-center justify-center shrink-0 shadow-lg">
+                <Radio className="w-5 h-5 text-white animate-pulse" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-xs font-extrabold text-pink-200">
+                  {isWaitingPauseBuffer
+                    ? '⏳ Esperando 1.4s por si quieres decir algo más, mi amorcito...'
+                    : '🎙️ Escuchándote con atención, mi amorcito... ¡Habla tranquila!'}
+                </p>
+                <p className="text-xs text-white truncate font-medium mt-0.5">
+                  {liveTranscript ? `"${liveTranscript}"` : 'Di por ejemplo: "¿Qué ropa me pongo hoy?"'}
+                </p>
+              </div>
+            </div>
+            <button
+              onClick={handleToggleMicrophone}
+              className="px-3 py-1.5 rounded-xl bg-white text-pink-700 font-extrabold text-xs shrink-0 shadow-md"
+            >
+              Enviar ahora
+            </button>
+          </div>
+        )}
 
-          <button
-            onClick={() => handleSendMessage('¿Qué clima hace hoy y qué ropa me conviene empacar o ponerme?')}
-            className="flex items-center gap-1 px-3 py-1 rounded-full bg-sky-500/20 hover:bg-sky-500/30 text-[11px] font-medium text-sky-300 whitespace-nowrap transition-colors border border-sky-400/40"
-          >
-            <span>🌤️ ¿Qué clima hace y qué me pongo?</span>
-          </button>
+        {voiceError && (
+          <div className="px-4 py-2 bg-amber-950/80 border-b border-amber-500/30 text-amber-200 text-xs flex items-center justify-between">
+            <span>{voiceError}</span>
+            <button onClick={() => setVoiceError(null)} className="text-amber-300 font-bold ml-2">
+              ✕
+            </button>
+          </div>
+        )}
 
-          <button
-            onClick={() => handleSendMessage('¿Cómo uso el Diario de Viaje para guardar fotos con mi cámara?')}
-            className="flex items-center gap-1 px-3 py-1 rounded-full bg-pink-500/20 hover:bg-pink-500/30 text-[11px] font-medium text-pink-300 whitespace-nowrap transition-colors border border-pink-400/40"
-          >
-            <span>📸 Mi Diario de Fotos</span>
-          </button>
-
-          <button
-            onClick={() => handleSendMessage('¿Cuál es mi itinerario y los horarios de hoy?')}
-            className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-800/80 hover:bg-slate-700 text-[11px] font-medium text-slate-300 whitespace-nowrap transition-colors border border-slate-700"
-          >
-            <Clock className="w-3 h-3 text-sky-400" />
-            <span>Mis horarios de hoy</span>
-          </button>
-
-          <button
-            onClick={() => handleSendMessage('¿A qué hora abren las Cataratas del Iguazú y el Teatro Colón?')}
-            className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-800/80 hover:bg-slate-700 text-[11px] font-medium text-amber-300 whitespace-nowrap transition-colors border border-slate-700"
-          >
-            <span>⏰ Horarios de apertura</span>
-          </button>
-
-          <button
-            onClick={() => handleSendMessage('¿Dónde comer los mejores helados de dulce de leche y empanadas?')}
-            className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-800/80 hover:bg-slate-700 text-[11px] font-medium text-pink-300 whitespace-nowrap transition-colors border border-slate-700"
-          >
-            <span>🍴 Helados & Comida</span>
-          </button>
-
-          <button
-            onClick={() => handleSendMessage('¿Cómo me muevo en Buenos Aires? ¿Cómo consigo la tarjeta SUBE?')}
-            className="flex items-center gap-1 px-3 py-1 rounded-full bg-slate-800/80 hover:bg-slate-700 text-[11px] font-medium text-emerald-300 whitespace-nowrap transition-colors border border-slate-700"
-          >
-            <span>🚇 Tarjeta SUBE</span>
-          </button>
-        </div>
-
-        {/* Message History */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
+        {/* Messages Area */}
+        <div className="flex-1 p-4 sm:p-5 overflow-y-auto space-y-4 bg-slate-950">
           {messages.map((msg) => {
             const isAI = msg.sender === 'ai';
+            const isSpeakingThis = speakingMsgId === msg.id;
 
             return (
               <div
                 key={msg.id}
-                className={`flex gap-3 ${isAI ? 'justify-start' : 'justify-end'}`}
+                className={`flex flex-col ${isAI ? 'items-start' : 'items-end'}`}
               >
-                {isAI && (
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shrink-0 shadow-md mt-0.5">
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                )}
-
                 <div
-                  className={`max-w-[85%] rounded-2xl p-4 shadow-md text-xs sm:text-sm leading-relaxed ${
+                  className={`max-w-[90%] sm:max-w-[82%] rounded-2xl p-4 shadow-md ${
                     isAI
-                      ? 'bg-slate-950/80 border border-slate-800 text-slate-200'
-                      : 'bg-gradient-to-r from-sky-600 to-indigo-600 text-white'
+                      ? 'bg-slate-900 border border-slate-800 text-slate-100 rounded-tl-sm'
+                      : 'bg-gradient-to-r from-pink-600 to-rose-600 text-white rounded-tr-sm'
                   }`}
                 >
-                  <div className="whitespace-pre-wrap">{msg.text}</div>
+                  {isAI && (
+                    <div className="flex items-center justify-between gap-3 mb-2 pb-1.5 border-b border-slate-800">
+                      <span className="text-[11px] font-bold text-pink-400 flex items-center gap-1">
+                        <Heart className="w-3 h-3 fill-current" />
+                        <span>Tu Guía Chileno (De Rodrigo para Amorcito)</span>
+                      </span>
 
-                  <div className="flex items-center justify-between gap-3 mt-2 pt-2 border-t border-slate-800/50 text-[10px] text-slate-400">
-                    <span>{msg.time}</span>
-
-                    {isAI && (
-                      <div className="flex items-center gap-2">
-                        {msg.isOffline && (
-                          <span className="text-amber-400 text-[9px] font-mono">
-                            Modo Local Offline
-                          </span>
-                        )}
-                        <button
-                          onClick={() => handleSpeechToggle(msg.id, msg.text)}
-                          className="flex items-center gap-1 text-slate-400 hover:text-white transition-colors"
-                          title="Escuchar mensaje en voz alta"
-                        >
-                          {speakingMsgId === msg.id ? (
-                            <VolumeX className="w-3.5 h-3.5 text-emerald-400" />
-                          ) : (
+                      <button
+                        onClick={() => handleSpeechToggle(msg.id, msg.text)}
+                        className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors ${
+                          isSpeakingThis
+                            ? 'bg-pink-600 text-white'
+                            : 'bg-slate-800 text-sky-300 hover:bg-slate-700'
+                        }`}
+                      >
+                        {isSpeakingThis ? (
+                          <>
+                            <VolumeX className="w-3.5 h-3.5" />
+                            <span>Detener voz</span>
+                          </>
+                        ) : (
+                          <>
                             <Volume2 className="w-3.5 h-3.5" />
-                          )}
-                          <span>{speakingMsgId === msg.id ? 'Parar' : 'Escuchar'}</span>
-                        </button>
-                      </div>
-                    )}
+                            <span>Escuchar voz</span>
+                          </>
+                        )}
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="text-sm leading-relaxed whitespace-pre-line">{msg.text}</div>
+
+                  <div className="mt-2 flex items-center justify-end gap-2 text-[10px] opacity-70">
+                    {msg.isOffline && <span>⚡ Respuesta Offline Instantánea</span>}
+                    <span>{msg.time}</span>
                   </div>
                 </div>
               </div>
@@ -356,53 +571,82 @@ export const MariaAIAssistantModal: React.FC<MariaAIAssistantModalProps> = ({
           })}
 
           {isLoading && (
-            <div className="flex items-center gap-2 text-xs text-slate-400 py-2">
-              <Sparkles className="w-4 h-4 text-sky-400 animate-spin" />
-              <span>Pensando la mejor respuesta para vos, María Ignacia...</span>
+            <div className="flex items-start">
+              <div className="bg-slate-900 border border-pink-500/30 rounded-2xl rounded-tl-sm p-4 text-xs text-pink-200 flex items-center gap-2.5">
+                <Heart className="w-4 h-4 text-pink-400 fill-current animate-pulse" />
+                <span>Pensando un segundito para responderte bien, mi amorcito... 💕</span>
+              </div>
             </div>
           )}
 
           <div ref={messagesEndRef} />
         </div>
 
-        {/* Input Bar */}
-        <div className="p-4 border-t border-slate-800 bg-slate-950/80 shrink-0">
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleSendMessage();
-            }}
-            className="flex items-center gap-2"
-          >
+        {/* Quick 1-Tap Chips for Amorcito */}
+        <div className="px-4 py-2.5 bg-slate-950 border-t border-slate-900 overflow-x-auto flex items-center gap-2 shrink-0 no-scrollbar">
+          {quickChips.map((chip) => (
+            <button
+              key={chip.label}
+              onClick={() => handleSendMessage(chip.query, false)}
+              disabled={isLoading}
+              className="px-3 py-1.5 rounded-full bg-slate-900 hover:bg-slate-800 border border-slate-800 text-slate-200 text-xs font-semibold whitespace-nowrap transition-colors shrink-0 active:scale-95"
+            >
+              {chip.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Bottom Voice + Text Input Bar (16px font size on mobile prevents iPhone Safari auto-zoom) */}
+        <div className="p-3 sm:p-4 bg-slate-950 border-t border-slate-800 shrink-0">
+          <div className="flex items-center gap-2">
+            {/* Giant Microphone Button for Hands-Free Voice */}
             <button
               type="button"
-              onClick={onRequestUserLocation}
-              className={`p-2.5 rounded-xl border transition-all ${
-                userLocation
-                  ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300'
-                  : 'bg-slate-800 hover:bg-slate-700 border-slate-700 text-slate-300'
+              onClick={handleToggleMicrophone}
+              className={`flex items-center justify-center gap-1.5 px-4 py-3 rounded-2xl font-extrabold text-xs sm:text-sm transition-all shrink-0 shadow-lg active:scale-95 ${
+                isListening || isWaitingPauseBuffer
+                  ? 'bg-gradient-to-r from-red-600 to-pink-600 text-white ring-4 ring-pink-500/40'
+                  : 'bg-gradient-to-r from-pink-600 to-rose-600 hover:from-pink-500 hover:to-rose-500 text-white'
               }`}
-              title="Compartir o actualizar mi ubicación GPS actual"
+              title="Hablar con mi voz sin tipear"
             >
-              <MapPin className="w-4 h-4" />
+              {isListening || isWaitingPauseBuffer ? (
+                <>
+                  <MicOff className="w-5 h-5" />
+                  <span>Escuchando...</span>
+                </>
+              ) : (
+                <>
+                  <Mic className="w-5 h-5" />
+                  <span>🎙️ Hablar</span>
+                </>
+              )}
             </button>
 
-            <input
-              type="text"
-              placeholder="Preguntale a tu guía sobre horarios, lugares, traslados..."
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
-              className="flex-1 bg-slate-900 border border-slate-700 rounded-2xl px-4 py-2.5 text-xs sm:text-sm text-slate-100 placeholder:text-slate-500 focus:outline-hidden focus:border-sky-400"
-            />
-
-            <button
-              type="submit"
-              disabled={!inputText.trim() || isLoading}
-              className="p-2.5 rounded-xl bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 disabled:opacity-40 text-white font-bold transition-all shadow-md shadow-sky-500/20"
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleSendMessage(undefined, false);
+              }}
+              className="flex-1 flex items-center gap-2"
             >
-              <Send className="w-4 h-4" />
-            </button>
-          </form>
+              <input
+                type="text"
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                placeholder="O escribe acá, mi amorcito..."
+                className="flex-1 px-4 py-3 rounded-2xl bg-slate-900 border border-slate-800 focus:border-pink-500 focus:outline-none text-base text-white placeholder-slate-500"
+              />
+              <button
+                type="submit"
+                disabled={!inputText.trim() || isLoading}
+                className="p-3.5 rounded-2xl bg-sky-600 hover:bg-sky-500 disabled:opacity-40 text-white transition-colors shrink-0"
+                title="Enviar mensaje"
+              >
+                <Send className="w-5 h-5" />
+              </button>
+            </form>
+          </div>
         </div>
       </div>
     </div>
